@@ -1,2 +1,8 @@
+## ignora archivos temporales, pruebas y
+## las carpetas con entornos virtuales
+
+# carpetas de entornos virtuales
 .venv
+
+# carpeta de pruebas
 pruebas
