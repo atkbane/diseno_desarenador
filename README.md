@@ -8,7 +8,7 @@ Pensado para ingenieros civiles, estudiantes o profesionales que necesiten dimen
 ## 🌐 Acceso web
 
 Abre la aplicación directamente desde el navegador, sin instalación:  
-👉 [https://atkbane.github.io/diseno-desarenador-web](https://atkbane.github.io/diseno-desarenador-web)
+👉 [https://atkbane.github.io/diseno_desarenador](https://atkbane.github.io/diseno_desarenador)
 
 > Funciona completamente en el navegador. No envía datos a ningún servidor.
 
