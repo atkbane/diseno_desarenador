@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diseño de Desarenador</title>
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+<style>
+/* ── Reset & base ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #f0f2f5;
+    color: #1a1a1a;
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+}
+
+/* ── Container ── */
+.container {
+    display: flex;
+    gap: 16px;
+    padding: 20px;
+    max-width: 1000px;
+    width: 100%;
+}
+
+/* ── Columnas ── */
+.col-left {
+    flex: 0 0 300px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.col-right {
+    flex: 1;
+    min-width: 0;
+}
+
+/* ── Card ── */
+.card {
+    background: #fff;
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.08);
+}
+.card h3 {
+    font-size: 13px;
+    font-weight: 600;
+    color: #555;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    margin-bottom: 10px;
+}
+
+/* ── Form elements ── */
+.form-group {
+    margin-bottom: 8px;
+}
+.form-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 2px;
+}
+.form-group input[type="text"],
+.form-group input[type="number"] {
+    width: 100%;
+    padding: 6px 8px;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    transition: border .2s;
+}
+.form-group input:focus {
+    outline: none;
+    border-color: #2a7;
+    box-shadow: 0 0 0 2px rgba(34,170,119,.15);
+}
+.form-group input.error {
+    border-color: #d32;
+    background: #fff5f5;
+}
+
+/* ── Radio group ── */
+.radio-group {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 4px;
+}
+.radio-group label {
+    font-size: 13px;
+    font-weight: 400;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+}
+.radio-group input[type="radio"] {
+    accent-color: #2a7;
+}
+
+/* ── Buttons ── */
+.buttons {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+}
+.btn {
+    flex: 1;
+    padding: 8px 0;
+    font-size: 14px;
+    font-weight: 600;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background .2s;
+}
+.btn-calc {
+    background: #2a7;
+    color: #fff;
+}
+.btn-calc:hover { background: #1a6; }
+.btn-calc:disabled { background: #999; cursor: not-allowed; }
+.btn-clear {
+    background: #e0e0e0;
+    color: #333;
+}
+.btn-clear:hover { background: #ccc; }
+
+/* ── Results ── */
+.results-box {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.08);
+    overflow: hidden;
+}
+.results-box pre {
+    margin: 0;
+    padding: 16px;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    white-space: pre;
+    overflow-x: auto;
+    background: #fafafa;
+    min-height: 300px;
+}
+.results-box .placeholder {
+    padding: 40px 16px;
+    text-align: center;
+    color: #999;
+    font-size: 14px;
+}
+
+/* ── Error box ── */
+.error-box {
+    background: #fee;
+    border: 1px solid #d32;
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 10px;
+    color: #a00;
+    font-size: 13px;
+    font-weight: 500;
+    display: none;
+}
+
+/* ── Loading overlay ── */
+#loading-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(0,0,0,.55);
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 16px;
+}
+#loading-overlay.active { display: flex; }
+.spinner {
+    width: 48px; height: 48px;
+    border: 5px solid rgba(255,255,255,.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+#loading-overlay p {
+    color: #fff;
+    font-size: 18px;
+    font-weight: 500;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+    .container { flex-direction: column; padding: 12px; }
+    .col-left { flex: 1; }
+}
+</style>
+</head>
+<body>
+
+<!-- Loading overlay -->
+<div id="loading-overlay">
+    <div class="spinner"></div>
+    <p id="loading-message">Cargando Pyodide...</p>
+</div>
+
+<div class="container">
+    <!-- LEFT COLUMN: Form -->
+    <div class="col-left">
+        <div class="card">
+            <h3>Proyecto</h3>
+            <div class="form-group">
+                <input type="text" id="inp-titulo" placeholder="Nombre del proyecto…">
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Método de Cálculo</h3>
+            <div class="radio-group">
+                <label><input type="radio" name="metodo" value="simple" checked> Simple</label>
+                <label><input type="radio" name="metodo" value="complejo"> Compleja</label>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Datos de Entrada</h3>
+
+            <div class="form-group">
+                <label for="inp-q">Caudal (m³/s)</label>
+                <input type="number" id="inp-q" step="any" min="0.001" required>
+            </div>
+
+            <div class="form-group">
+                <label for="inp-n-nav">N° Naves</label>
+                <input type="number" id="inp-n-nav" value="3" min="1" step="1" required>
+            </div>
+
+            <div class="form-group">
+                <label for="inp-d">Diámetro (mm)</label>
+                <input type="number" id="inp-d" step="any" min="0.001" required>
+            </div>
+
+            <div class="form-group">
+                <label for="inp-c">Coef. C</label>
+                <input type="number" id="inp-c" step="any" min="0.01" value="2.10" required>
+            </div>
+
+            <div class="form-group">
+                <label for="inp-b">Ancho nave (m)</label>
+                <input type="number" id="inp-b" step="any" min="0.001" required>
+            </div>
+
+            <div class="form-group">
+                <label for="inp-h">Tirante agua (m)</label>
+                <input type="number" id="inp-h" step="any" min="0.001" required>
+            </div>
+
+            <div class="form-group" id="group-v-par">
+                <label for="inp-v-par">Vel. caída (cm/s)</label>
+                <input type="number" id="inp-v-par" step="any" min="0.001" required>
+            </div>
+
+            <div class="buttons">
+                <button class="btn btn-clear" id="btn-limpiar">Limpiar</button>
+                <button class="btn btn-calc" id="btn-calcular">Calcular</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- RIGHT COLUMN: Results -->
+    <div class="col-right">
+        <div id="error-box" class="error-box"></div>
+        <div class="results-box">
+            <pre id="result-text"><span class="placeholder">Los resultados aparecerán aquí.</span></pre>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    'use strict';
+
+    // ── DOM references ──
+    const $ = id => document.getElementById(id);
+    const inp_titulo = $('inp-titulo');
+    const inp_q      = $('inp-q');
+    const inp_n_nav  = $('inp-n-nav');
+    const inp_d      = $('inp-d');
+    const inp_c      = $('inp-c');
+    const inp_b      = $('inp-b');
+    const inp_h      = $('inp-h');
+    const inp_v_par  = $('inp-v-par');
+    const radios     = document.querySelectorAll('input[name="metodo"]');
+    const btn_calc   = $('btn-calcular');
+    const btn_limpiar= $('btn-limpiar');
+    const result_pre = $('result-text');
+    const error_box  = $('error-box');
+    const overlay    = $('loading-overlay');
+    const load_msg   = $('loading-message');
+    const group_v_par= $('group-v-par');
+
+    let pyodide_ready = false;
+    let pyodide = null;
+
+    // ── Conditional field visibility ──
+    function updateMetodo() {
+        const checked = document.querySelector('input[name="metodo"]:checked');
+        const is_simple = checked && checked.value === 'simple';
+        group_v_par.style.display = is_simple ? 'block' : 'none';
+        if (!is_simple) inp_v_par.required = false;
+        else inp_v_par.required = true;
+    }
+    radios.forEach(r => r.addEventListener('change', updateMetodo));
+    updateMetodo();
+
+    // ── Show/hide overlay ──
+    function showOverlay(msg) {
+        load_msg.textContent = msg || 'Procesando...';
+        overlay.classList.add('active');
+    }
+    function hideOverlay() {
+        overlay.classList.remove('active');
+    }
+
+    // ── Show error ──
+    function showError(msg) {
+        error_box.textContent = msg;
+        error_box.style.display = 'block';
+    }
+    function hideError() {
+        error_box.style.display = 'none';
+    }
+
+    // ── Init Pyodide ──
+    async function initPyodide() {
+        if (pyodide_ready) return;
+        showOverlay('Cargando Pyodide (primera vez puede tardar ~10s)...');
+        try {
+            pyodide = await loadPyodide({
+                indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/',
+            });
+            // Load web_main.py and desarenador_hydraulics.py as text
+            const resp1 = await fetch('web_main.py');
+            const resp2 = await fetch('desarenador_hydraulics.py');
+            if (!resp1.ok || !resp2.ok) {
+                throw new Error('No se pudieron cargar los módulos Python. Asegúrate de que web_main.py y desarenador_hydraulics.py estén en la misma carpeta que index.html.');
+            }
+            const code_main = await resp1.text();
+            const code_hydr = await resp2.text();
+            // Register filesystem
+            pyodide.FS.writeFile('/desarenador_hydraulics.py', code_hydr);
+            pyodide.FS.writeFile('/web_main.py', code_main);
+            // Eval hydraulics first, then web_main
+            pyodide.runPython(`
+import sys
+sys.path.insert(0, '/')
+exec(open('/desarenador_hydraulics.py').read())
+exec(open('/web_main.py').read())
+`);
+            pyodide_ready = true;
+        } catch (err) {
+            showError('Error al cargar Pyodide: ' + err.message);
+            console.error(err);
+        } finally {
+            hideOverlay();
+        }
+    }
+
+    // ── Validate ──
+    function validate() {
+        const fields = [
+            { el: inp_q,      name: 'Caudal' },
+            { el: inp_d,      name: 'Diámetro' },
+            { el: inp_b,      name: 'Ancho de nave' },
+            { el: inp_h,      name: 'Tirante de agua' },
+        ];
+        const n_nav = parseInt(inp_n_nav.value, 10);
+        const c_val = parseFloat(inp_c.value);
+        let valid = true;
+
+        // Clear errors
+        document.querySelectorAll('.error').forEach(el => el.classList.remove('error'));
+
+        for (const f of fields) {
+            const v = parseFloat(f.el.value);
+            if (!f.el.value || isNaN(v) || v <= 0) {
+                f.el.classList.add('error');
+                valid = false;
+            }
+        }
+
+        if (isNaN(n_nav) || n_nav < 1 || n_nav !== Math.floor(n_nav)) {
+            inp_n_nav.classList.add('error');
+            valid = false;
+        }
+
+        if (isNaN(c_val) || c_val <= 0) {
+            inp_c.classList.add('error');
+            valid = false;
+        }
+
+        const is_simple = document.querySelector('input[name="metodo"]:checked').value === 'simple';
+        if (is_simple) {
+            const vp = parseFloat(inp_v_par.value);
+            if (!inp_v_par.value || isNaN(vp) || vp <= 0) {
+                inp_v_par.classList.add('error');
+                valid = false;
+            }
+        }
+
+        if (!valid) {
+            showError('Corrige los campos resaltados (deben ser valores numéricos positivos).');
+        }
+        return valid;
+    }
+
+    // ── Calculate ──
+    async function calcular() {
+        hideError();
+        if (!validate()) return;
+
+        if (!pyodide_ready) {
+            btn_calc.disabled = true;
+            await initPyodide();
+        }
+
+        if (!pyodide_ready) {
+            btn_calc.disabled = false;
+            return;
+        }
+
+        showOverlay('Calculando...');
+
+        try {
+            const metodo = document.querySelector('input[name="metodo"]:checked').value;
+            const params = {
+                titulo: inp_titulo.value || '',
+                q: parseFloat(inp_q.value),
+                d_par: parseFloat(inp_d.value),
+                bas: parseFloat(inp_b.value),
+                alt: parseFloat(inp_h.value),
+                n_nav: parseInt(inp_n_nav.value, 10),
+                c_ver: parseFloat(inp_c.value),
+                metodo: metodo,
+            };
+            if (metodo === 'simple') {
+                params.v_par = parseFloat(inp_v_par.value);
+            }
+
+            const result = pyodide.runPython(
+                `ejecutar_diseno(${JSON.stringify(params)})`
+            );
+            const obj = result.toJs();
+
+            if (obj.ok) {
+                result_pre.textContent = obj.texto;
+            } else {
+                showError(obj.error || 'Error desconocido en el cálculo.');
+                result_pre.textContent = '';
+            }
+        } catch (err) {
+            showError('Error: ' + err.message);
+            console.error(err);
+        } finally {
+            hideOverlay();
+            btn_calc.disabled = false;
+        }
+    }
+
+    // ── Clear ──
+    function limpiar() {
+        inp_titulo.value = '';
+        inp_q.value = '';
+        inp_n_nav.value = '3';
+        inp_d.value = '';
+        inp_c.value = '2.10';
+        inp_b.value = '';
+        inp_h.value = '';
+        inp_v_par.value = '';
+        document.querySelector('input[name="metodo"][value="simple"]').checked = true;
+        updateMetodo();
+        result_pre.innerHTML = '<span class="placeholder">Los resultados aparecerán aquí.</span>';
+        hideError();
+        document.querySelectorAll('.error').forEach(el => el.classList.remove('error'));
+    }
+
+    // ── Events ──
+    btn_calc.addEventListener('click', calcular);
+    btn_limpiar.addEventListener('click', limpiar);
+
+    // ── Auto-init Pyodide in background ──
+    // Start loading Pyodide silently after page loads
+    window.addEventListener('load', () => {
+        // Small delay so UI renders first
+        setTimeout(initPyodide, 500);
+    });
+
+})();
+</script>
+</body>
+</html>
