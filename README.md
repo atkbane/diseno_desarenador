@@ -91,4 +91,4 @@ Este proyecto se distribuye bajo la licencia **MIT**. Consulta el archivo [LICEN
 
 ## 👨‍💻 Autor
 
-Creado por [atkbane](https://github.com/atkbane) – ingeniero civil hidráulico.
+Creado por [Aldo Tapia](https://github.com/atkbane) – ingeniero civil hidráulico.
