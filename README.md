@@ -14,6 +14,28 @@ Abre la aplicación directamente desde el navegador, sin instalación:
 
 ---
 
+## 🖥️ Versión escritorio
+
+También existe una versión de escritorio con interfaz gráfica (PySide6). Útil si prefieres ejecutar localmente sin depender del navegador.
+
+### Instalación y uso
+
+```bash
+# 1. Clonar el repositorio
+git clone https://github.com/atkbane/diseno_desarenador.git
+cd diseno_desarenador
+
+# 2. Instalar dependencias
+pip install PySide6 matplotlib
+
+# 3. Ejecutar
+python run_desktop.py
+```
+
+> El módulo de cálculo (`desarenador_hydraulics.py`) solo usa `math`, no requiere numpy ni SciPy.
+
+---
+
 ## 📐 Base teórica
 
 ### Fórmulas principales
@@ -77,7 +99,9 @@ Para empezar de nuevo, presiona **"Limpiar"**.
 ```
 diseno-desarenador-web/
 ├── desarenador_hydraulics.py   # Lógica del modelo (fórmulas, validación)
-├── web_main.py                 # Puente Python/Pyodide (formatea resultados)
+├── web_bridge.py               # Puente Python/Pyodide (formatea resultados)
+├── interfaz.py                 # Interfaz gráfica de escritorio (PySide6)
+├── run_desktop.py              # Punto de entrada versión escritorio
 ├── index.html                  # Interfaz web
 ├── README.md
 └── LICENSE

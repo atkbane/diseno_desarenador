@@ -346,23 +346,23 @@ body {
             pyodide = await loadPyodide({
                 indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/',
             });
-            // Load web_main.py and desarenador_hydraulics.py as text
-            const resp1 = await fetch('web_main.py');
+            // Load web_bridge.py and desarenador_hydraulics.py as text
+            const resp1 = await fetch('web_bridge.py');
             const resp2 = await fetch('desarenador_hydraulics.py');
             if (!resp1.ok || !resp2.ok) {
-                throw new Error('No se pudieron cargar los módulos Python. Asegúrate de que web_main.py y desarenador_hydraulics.py estén en la misma carpeta que index.html.');
+                throw new Error('No se pudieron cargar los módulos Python. Asegúrate de que web_bridge.py y desarenador_hydraulics.py estén en la misma carpeta que index.html.');
             }
             const code_main = await resp1.text();
             const code_hydr = await resp2.text();
             // Register filesystem
             pyodide.FS.writeFile('/desarenador_hydraulics.py', code_hydr);
-            pyodide.FS.writeFile('/web_main.py', code_main);
-            // Eval hydraulics first, then web_main
+            pyodide.FS.writeFile('/web_bridge.py', code_main);
+            // Eval hydraulics first, then web_bridge
             pyodide.runPython(`
 import sys
 sys.path.insert(0, '/')
 exec(open('/desarenador_hydraulics.py').read())
-exec(open('/web_main.py').read())
+exec(open('/web_bridge.py').read())
 `);
             pyodide_ready = true;
         } catch (err) {
