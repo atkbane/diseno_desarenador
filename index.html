@@ -222,10 +222,18 @@ body {
         </div>
 
         <div class="card">
-            <h3>Método de Cálculo</h3>
+            <h3>Velocidad Límite</h3>
             <div class="radio-group">
-                <label><input type="radio" name="metodo" value="simple" checked> Simple</label>
-                <label><input type="radio" name="metodo" value="complejo"> Compleja</label>
+                <label><input type="radio" name="vel_limite" value="camp" checked> Camp</label>
+                <label><input type="radio" name="vel_limite" value="shields"> Shields</label>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Fuente de w</h3>
+            <div class="radio-group">
+                <label><input type="radio" name="fuente_w" value="manual" checked> Manual</label>
+                <label><input type="radio" name="fuente_w" value="zanke"> Zanke</label>
             </div>
         </div>
 
@@ -249,7 +257,7 @@ body {
 
             <div class="form-group">
                 <label for="inp-c">C. Vertedero</label>
-                <input type="number" id="inp-c" step="any" min="0.01" value="2.10" required>
+                <input type="number" id="inp-c" step="any" min="0.01" value="2.00" required>
             </div>
 
             <div class="form-group">
@@ -297,7 +305,8 @@ body {
     const inp_b      = $('inp-b');
     const inp_h      = $('inp-h');
     const inp_v_par  = $('inp-v-par');
-    const radios     = document.querySelectorAll('input[name="metodo"]');
+    const vel_radios = document.querySelectorAll('input[name="vel_limite"]');
+    const fw_radios  = document.querySelectorAll('input[name="fuente_w"]');
     const btn_calc   = $('btn-calcular');
     const btn_limpiar= $('btn-limpiar');
     const result_pre = $('result-text');
@@ -310,15 +319,14 @@ body {
     let pyodide = null;
 
     // ── Conditional field visibility ──
-    function updateMetodo() {
-        const checked = document.querySelector('input[name="metodo"]:checked');
-        const is_simple = checked && checked.value === 'simple';
-        group_v_par.style.display = is_simple ? 'block' : 'none';
-        if (!is_simple) inp_v_par.required = false;
-        else inp_v_par.required = true;
+    function updateFuenteW() {
+        const checked = document.querySelector('input[name="fuente_w"]:checked');
+        const is_manual = checked && checked.value === 'manual';
+        group_v_par.style.display = is_manual ? 'block' : 'none';
+        inp_v_par.required = is_manual;
     }
-    radios.forEach(r => r.addEventListener('change', updateMetodo));
-    updateMetodo();
+    fw_radios.forEach(r => r.addEventListener('change', updateFuenteW));
+    updateFuenteW();
 
     // ── Show/hide overlay ──
     function showOverlay(msg) {
@@ -406,8 +414,8 @@ exec(open('/web_bridge.py').read())
             valid = false;
         }
 
-        const is_simple = document.querySelector('input[name="metodo"]:checked').value === 'simple';
-        if (is_simple) {
+        const is_manual = document.querySelector('input[name="fuente_w"]:checked').value === 'manual';
+        if (is_manual) {
             const vp = parseFloat(inp_v_par.value);
             if (!inp_v_par.value || isNaN(vp) || vp <= 0) {
                 inp_v_par.classList.add('error');
@@ -439,7 +447,8 @@ exec(open('/web_bridge.py').read())
         showOverlay('Calculando...');
 
         try {
-            const metodo = document.querySelector('input[name="metodo"]:checked').value;
+            const vel_limite = document.querySelector('input[name="vel_limite"]:checked').value;
+            const fuente_w   = document.querySelector('input[name="fuente_w"]:checked').value;
             const params = {
                 titulo: inp_titulo.value || '',
                 q: parseFloat(inp_q.value),
@@ -448,9 +457,10 @@ exec(open('/web_bridge.py').read())
                 alt: parseFloat(inp_h.value),
                 n_nav: parseInt(inp_n_nav.value, 10),
                 c_ver: parseFloat(inp_c.value),
-                metodo: metodo,
+                vel_limite: vel_limite,
+                fuente_w: fuente_w,
             };
-            if (metodo === 'simple') {
+            if (fuente_w === 'manual') {
                 params.v_par = parseFloat(inp_v_par.value);
             }
 
@@ -480,12 +490,13 @@ exec(open('/web_bridge.py').read())
         inp_q.value = '';
         inp_n_nav.value = '3';
         inp_d.value = '';
-        inp_c.value = '2.10';
+        inp_c.value = '2.00';
         inp_b.value = '';
         inp_h.value = '';
         inp_v_par.value = '';
-        document.querySelector('input[name="metodo"][value="simple"]').checked = true;
-        updateMetodo();
+        document.querySelector('input[name="vel_limite"][value="camp"]').checked = true;
+        document.querySelector('input[name="fuente_w"][value="manual"]').checked = true;
+        updateFuenteW();
         result_pre.innerHTML = '<span class="placeholder">Los resultados aparecerán aquí.</span>';
         hideError();
         document.querySelectorAll('.error').forEach(el => el.classList.remove('error'));

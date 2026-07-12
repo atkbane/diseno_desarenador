@@ -1,6 +1,6 @@
-# Diseño de Desarenador — Web
+# Diseño de Desarenador
 
-Calcula las dimensiones principales de un desarenador para centrales hidroeléctricas usando dos métodos hidráulicos: **Simple** (Camp) y **Complejo** (Zanke + Shields).  
+Calcula las dimensiones principales de un desarenador para centrales hidroeléctricas con dos opciones independientes: **velocidad límite** (Camp/Shields) y **fuente de w** (Manual/Zanke).  
 Pensado para ingenieros civiles, estudiantes o profesionales que necesiten dimensionar naves de sedimentación con bisel dinámico.
 
 ---
@@ -8,47 +8,43 @@ Pensado para ingenieros civiles, estudiantes o profesionales que necesiten dimen
 ## 🌐 Acceso web
 
 Abre la aplicación directamente desde el navegador, sin instalación:  
-👉 [https://atkbane.github.io/diseno_desarenador](https://atkbane.github.io/diseno_desarenador)
+👉 [https://atkbane.github.io/vaciado_desarenador/](https://atkbane.github.io/vaciado_desarenador/)
 
 > Funciona completamente en el navegador. No envía datos a ningún servidor.
 
 ---
 
-## 🖥️ Versión escritorio
-
-También existe una versión de escritorio con interfaz gráfica (PySide6). Útil si prefieres ejecutar localmente sin depender del navegador.
-
-### Instalación y uso
-
-```bash
-# 1. Clonar el repositorio
-git clone https://github.com/atkbane/diseno_desarenador.git
-cd diseno_desarenador
-
-# 2. Instalar dependencias
-pip install PySide6 matplotlib
-
-# 3. Ejecutar
-python run_desktop.py
-```
-
-> El módulo de cálculo (`desarenador_hydraulics.py`) solo usa `math`, no requiere numpy ni SciPy.
-
----
-
 ## 📐 Base teórica
+
+### Opciones de cálculo
+
+El programa ofrece dos opciones independientes:
+
+**1. Velocidad límite del flujo:**
+| Opción | Fórmula | Fuente |
+|--------|---------|--------|
+| **Camp** (estándar) | `v = a·√d` (a = 36, 44 ó 51 según d) | ANA p. 80, Villon p. 105 |
+| **Shields** (alternativo) | `v_crítica = ks·R^(1/6)·√((ρs/ρw−1)·d·0.03)` | Shields (1936) |
+
+**2. Velocidad de caída de la partícula (w):**
+| Opción | Método | Fuente |
+|--------|--------|--------|
+| **Manual** | Usuario ingresa w de tablas/nomogramas | Arkhangelski, Sudry, Bouvard |
+| **Zanke** | Cálculo automático desde d | Zanke (1977) |
+
+**Corrección por turbulencia:** Siempre se aplica Bestelli/Levin (`wf = w − 0.132/√h · v`).
 
 ### Fórmulas principales
 
 | Concepto / Método | Expresión | Parámetros clave |
 |-------------------|-----------|------------------|
-| Velocidad límite (Camp) | `v = a · √d`  (a = 36, 44 ó 51 según d) | d: diámetro partícula [mm] |
+| Velocidad límite (Camp) | `v = a · √d`  (a = 36, 44 ó 51 según d) | d: diámetro partícula [mm]; rangos: <0.1, 0.1-1, >1 |
 | Velocidad crítica (Shields) | `v_crítica = ks · R^(1/6) · √((ρs/ρw − 1) · d · 0.03)` | ks = 1/n, R: radio hidráulico |
 | Velocidad caída (Zanke) | `w_o = 11 · ν/d · (√(1 + 0.01·D³) − 1)` | D: diámetro adimensional |
 | Corrección por turbulencia (Sokolov) | `w_f = w − 0.132/√h · v` | h: tirante, v: velocidad flujo |
 | Longitud simple (Bestelli/Sokolov/Velikanov) | `L = h^(3/2) · v / (√h·w − 0.132·v)` | v, h, w |
 | Longitud compleja | `L = V · h / w_f` | v, h, w_f (ya corregida) |
-| Vertedero cresta redondeada | `h = (Q / (C·L))^(2/3)` | C ≈ 2.10 |
+| Vertedero cresta redondeada | `h = (Q / (C·L))^(2/3)` | C = 2.00 (Creager) |
 | Bisel dinámico | `alt_bisel = redondeo(0.32·H − 0.40)` | H: tirante total |
 
 ### Supuestos del modelo
@@ -57,7 +53,7 @@ python run_desktop.py
 - Coeficiente de Manning para concreto: n = 0.013 s/m^(1/3).
 - Densidad del sedimento: 2.65 g/cm³ (cuarzo).
 - Densidad del agua: 1.00 g/cm³.
-- Viscosidad cinemática del agua a 20 °C: 1.3×10⁻⁶ m²/s.
+- Viscosidad cinemática del agua a 20 °C: 1.0×10⁻⁶ m²/s.
 - Coeficiente de Shields: 0.03 (condiciones típicas de desarenador).
 - Flujo en régimen uniforme dentro de cada nave.
 
@@ -65,21 +61,22 @@ python run_desktop.py
 
 ## ✨ Características
 
-- **Dos métodos de cálculo** — Simple (Camp + Bestelli) o Complejo (Zanke + Shields + Sokolov), seleccionables con radio buttons.
-- **Velocidad de caída condicional** — campo visible solo en método Simple; en método Complejo se calcula automáticamente.
+- **Dos opciones independientes** — Velocidad límite (Camp/Shields) y Fuente de w (Manual/Zanke).
+- **4 combinaciones posibles** — Camp+Manual, Camp+Zanke, Shields+Manual, Shields+Zanke.
+- **Velocidad de caída condicional** — campo visible solo cuando se selecciona "Manual".
 - **Validación en tiempo real** — campos resaltados en rojo si los valores no son válidos.
-- **Resultados formateados** — misma presentación que la versión de escritorio (separadores, íconos ✅/❌, secciones VELOCIDADES, DIMENSIONES, VERTEDERO, LIMPIEZA N-1).
-- **Limpieza (N-1)** — si hay más de 1 nave, se calcula la condición de limpieza (una nave fuera de servicio).
+- **Resultados formateados** — secciones VELOCIDADES, DIMENSIONES, VERTEDERO, LIMPIEZA N-1.
+- **Limpieza (N-1)** — si hay más de 1 nave, se calcula la condición de limpieza.
 - **Interfaz responsiva** — dos columnas en escritorio, apilada en móviles.
-- **Sin instalación** — todo corre en el navegador con Pyodide. No requiere servidor.
 
 ---
 
 ## 🧪 Cómo usar
 
-1. **Selecciona el método** — Simple (ingresas velocidad de caída) o Complejo (se calcula todo).
-2. **Ingresa los datos** — Caudal, diámetro de partícula, dimensiones de la nave, coeficiente C del vertedero y número de naves.
-3. **Presiona "Calcular"** — Pyodide se carga automáticamente la primera vez (~5–10 s). Los resultados aparecen en la columna derecha.
+1. **Selecciona la velocidad límite** — Camp (estándar) o Shields (alternativo).
+2. **Selecciona la fuente de w** — Manual (ingresas w de tablas) o Zanke (se calcula automáticamente).
+3. **Ingresa los datos** — Caudal, diámetro de partícula, dimensiones de la nave, coeficiente C del vertedero y número de naves.
+4. **Presiona "Calcular"** — Los resultados aparecen en la columna derecha.
 
 Para empezar de nuevo, presiona **"Limpiar"**.
 
@@ -87,24 +84,24 @@ Para empezar de nuevo, presiona **"Limpiar"**.
 
 ## 🛠️ Tecnologías
 
-- [Python](https://python.org) — Lógica de cálculo hidráulico (numpy no requerido, solo math).
-- [Pyodide v0.26.4](https://pyodide.org) — Python en el navegador (via CDN).
-- HTML5 / CSS3 / JavaScript (vanilla) — Interfaz de usuario.
-- [GitHub Pages](https://pages.github.com) — Hosting gratuito.
+- [Python](https://python.org) — Lógica de cálculo hidráulico (solo `math`, sin numpy).
+- [PySide6](https://doc.qt.io/qtforpython-6/) — Interfaz gráfica de escritorio.
 
 ---
 
 ## 📁 Estructura del proyecto
 
 ```
-diseno-desarenador-web/
-├── desarenador_hydraulics.py   # Lógica del modelo (fórmulas, validación)
-├── web_bridge.py               # Puente Python/Pyodide (formatea resultados)
-├── interfaz.py                 # Interfaz gráfica de escritorio (PySide6)
-├── run_desktop.py              # Punto de entrada versión escritorio
+diseno_desarenador/
+├── desarenador_hydraulics.py   # Lógica de cálculo (constantes, fórmulas)
+├── run_desktop.py              # Interfaz gráfica PySide6 (entry point)
+├── web_bridge.py               # Puente Python/Pyodide (versión web)
 ├── index.html                  # Interfaz web
-├── README.md
-└── LICENSE
+├── marco_teorico.md            # Documentación teórica completa
+├── revision.md                 # Registro de revisiones y decisiones
+├── test_desarenador.py         # Tests unitarios (55 casos)
+├── Testeos_mar.py              # Notebook marimo con pruebas
+└── README.md
 ```
 
 ---

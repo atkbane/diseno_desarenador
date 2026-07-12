@@ -1,6 +1,6 @@
 """
-web_main.py
-===========
+web_bridge.py
+=============
 Módulo puente entre la interfaz web (JavaScript/Pyodide) y la lógica
 de cálculo hidráulico de desarenadores (desarenador_hydraulics).
 
@@ -10,12 +10,9 @@ que devuelve un dict JSON-serializable.
 
 from desarenador_hydraulics import diseno_desarenador
 
-# ─────────────────────────────────────────────────────────────────────────────
-#  FORMATEO DE RESULTADOS (mismo formato que interfaz_desa._formatear)
-# ─────────────────────────────────────────────────────────────────────────────
 
 def _formatear(r: dict, titulo: str, bas: float, alt: float) -> str:
-    sep = "\u2500" * 42
+    sep = "\u2500" * 44
     icono = "\u2705" if r["estado"] == "OK" else "\u274c"
     linea_estado = (
         f"{icono} DISEÑO OK  (Margen: {r['margen_pct']}%)"
@@ -23,11 +20,13 @@ def _formatear(r: dict, titulo: str, bas: float, alt: float) -> str:
         f"{icono} FALLA — V. real supera V. límite"
     )
 
-    metodo_label = "Simple" if r["metodo_usado"] == "simple" else "Compleja"
+    vel_label = "Camp" if r["vel_limite"] == "camp" else "Shields"
+    w_label = "Manual" if r["fuente_w"] == "manual" else "Zanke"
 
     res = (
-        f"Proyecto : {titulo}\n"
-        f"Método   : {metodo_label}\n"
+        f"Proyecto    : {titulo}\n"
+        f"Vel. límite : {vel_label}\n"
+        f"Fuente w    : {w_label}\n"
         f"{sep}\n"
         f"{linea_estado}\n"
         f"{sep}\n"
@@ -36,16 +35,9 @@ def _formatear(r: dict, titulo: str, bas: float, alt: float) -> str:
         f"  V. real (Q/Área)       : {r['v_real']} m/s\n"
         f"  Límite CAMP            : {r['v_camp']} m/s\n"
         f"  Límite SHIELDS         : {r['v_shields']} m/s\n"
-    )
-
-    if r["metodo_usado"] == "complejo":
-        res += (
-            f"  W caída (Zanke)        : {r['w_caida']} m/s\n"
-            f"  W efectiva (fluyendo)  : {r['w_efectiva']} m/s\n"
-        )
-
-    res += (
         f"  Factor limitante       : {r['factor_limitante']}\n"
+        f"  W caída                : {r['w_caida']} m/s\n"
+        f"  W efectiva (Bestelli)  : {r['w_efectiva']} m/s\n"
         f"{sep}\n"
         "\n"
         "DIMENSIONES\n"
@@ -77,10 +69,6 @@ def _formatear(r: dict, titulo: str, bas: float, alt: float) -> str:
     return res
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-#  FUNCIÓN PRINCIPAL (llamada desde JavaScript)
-# ─────────────────────────────────────────────────────────────────────────────
-
 def ejecutar_diseno(parametros: dict) -> dict:
     """
     Ejecuta el diseño completo del desarenador y devuelve resultados
@@ -88,23 +76,20 @@ def ejecutar_diseno(parametros: dict) -> dict:
 
     Parámetros (dict)
     -----------------
-    titulo : str (opcional) — nombre del proyecto
-    q : float — caudal total [m³/s]
-    d_par : float — diámetro de partícula [mm]
-    bas : float — ancho de nave [m]
-    alt : float — tirante de agua [m]
-    n_nav : int — número de naves
-    c_ver : float — coeficiente C del vertedero
-    v_par : float — velocidad de caída [cm/s] (solo método simple)
-    metodo : str — "simple" o "complejo"
+    titulo   : str (opcional) — nombre del proyecto
+    q        : float — caudal total [m³/s]
+    d_par    : float — diámetro de partícula [mm]
+    bas      : float — ancho de nave [m]
+    alt      : float — tirante de agua [m]
+    n_nav    : int — número de naves
+    c_ver    : float — coeficiente C del vertedero
+    vel_limite : str — "camp" o "shields"
+    fuente_w   : str — "manual" o "zanke"
+    v_par    : float — velocidad de caída [cm/s] (solo si fuente_w="manual")
 
     Retorna
     -------
-    dict con:
-        ok : bool
-        texto : str (resultado formateado) — solo si ok=True
-        datos : dict (resultados crudos) — solo si ok=True
-        error : str — solo si ok=False
+    dict con: ok, texto, datos, error
     """
     try:
         titulo = parametros.get("titulo", "").strip() or "—"
@@ -113,18 +98,16 @@ def ejecutar_diseno(parametros: dict) -> dict:
         bas = float(parametros["bas"])
         alt = float(parametros["alt"])
         n_nav = int(parametros["n_nav"])
-        c_ver = float(parametros.get("c_ver", 2.10))
-        metodo = parametros.get("metodo", "simple")
-
-        if metodo == "simple":
-            v_par = float(parametros["v_par"])
-        else:
-            v_par = 0.0
+        c_ver = float(parametros.get("c_ver", 2.00))
+        vel_limite = parametros.get("vel_limite", "camp")
+        fuente_w = parametros.get("fuente_w", "manual")
+        v_par = float(parametros.get("v_par", 0.0))
 
         r = diseno_desarenador(
             q=q, d_par=d_par, bas=bas, alt=alt,
-            v_par=v_par, c_ver=c_ver, n_nav=n_nav,
-            metodo=metodo,
+            c_ver=c_ver, n_nav=n_nav,
+            vel_limite=vel_limite, fuente_w=fuente_w,
+            v_par=v_par,
         )
 
         texto = _formatear(r, titulo, bas, alt)
@@ -132,29 +115,7 @@ def ejecutar_diseno(parametros: dict) -> dict:
         return {
             "ok": True,
             "texto": texto,
-            "datos": {
-                "q_nave": r["q_nave"],
-                "area": r["area"],
-                "perimetro": r["perimetro"],
-                "radio_hid": r["radio_hid"],
-                "alt_bisel": r["alt_bisel"],
-                "v_real": r["v_real"],
-                "v_camp": r["v_camp"],
-                "v_shields": r["v_shields"],
-                "v_limite": r["v_limite"],
-                "factor_limitante": r["factor_limitante"],
-                "w_caida": r["w_caida"],
-                "w_efectiva": r["w_efectiva"],
-                "estado": r["estado"],
-                "margen_pct": r["margen_pct"],
-                "lon_sed": r["lon_sed"],
-                "h_vertedero": r["h_vertedero"],
-                "p_cresta": r["p_cresta"],
-                "q_limpia": r["q_limpia"],
-                "h_limpia": r["h_limpia"],
-                "h_total_limpia": r["h_total_limpia"],
-                "metodo_usado": r["metodo_usado"],
-            },
+            "datos": r,
         }
 
     except ValueError as ex:
