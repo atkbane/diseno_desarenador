@@ -88,16 +88,16 @@ def car_sec_des(b: float, h: float):
 
 def vel_CAMP(d: float) -> float:
     """
-    Velocidad máxima del flujo para sedimentación.
+    Velocidad máxima del flujo para sedimentación (Camp, 1946).
 
-        v = a · √d  [cm/s]
+        v = a · √d  [cm/s]   →   resultado dividido por 100 → m/s
 
-    where a depends on particle diameter:
+    where a depends on particle diameter (d en mm):
       d > 1.0 mm  →  a = 36
       d ≥ 0.1 mm  →  a = 44
       d < 0.1 mm  →  a = 51
 
-    Reference: Camp (1946). ANA p. 80, Villon p. 105.
+    Reference: Camp (1946). ANA p. 80, Villón p. 105.
     """
     if d <= 0:
         return 0.0
@@ -129,6 +129,8 @@ def vel_critica_shields(b: float, h: float, d: float) -> float:
     if rh <= 0:
         return 0.0
     d_m = d / 1000
+    # θ_cr = 0.03 (Shields, incipient motion — valor conservador).
+    # Ver marco_teorico.md §3.2 para justificación y rangos típicos.
     raiz = math.sqrt((PS_SEDIMENTO / PW_AGUA - 1) * d_m * 0.03)
     return round(K_STRICKLER * rh ** (1 / 6) * raiz, 3)
 
@@ -174,29 +176,20 @@ def w_en_agua_fluyendo(w: float, v: float, h: float) -> float:
 #  LONGITUD DE SEDIMENTACIÓN (Bestelli / Sokolov / Velikanov)
 # ─────────────────────────────────────────────────────────────────────────────
 
-def lon_sed(h: float, v: float, w: float, wf_ya_aplicado: bool = False) -> float:
+def lon_sed(h: float, v: float, wf: float) -> float:
     """
-    Longitud de sedimentación con corrección por turbulencia.
+    Longitud de sedimentación a partir de la velocidad de caída efectiva.
 
-    Si wf_ya_aplicado=False (w es velocidad en agua quieta):
-        L = h^(3/2) · v / ( √h · w - 0.132 · v )
+        L = v · h / wf
 
-    Si wf_ya_aplicado=True (w ya es velocidad efectiva wf):
-        L = v · h / w
+    donde wf = w - (0.132/√h)·v incluye la corrección por turbulencia
+    de Bestelli/Levin (ver `w_en_agua_fluyendo`).
 
-    Ambas fórmulas son equivalentes matemáticamente.
-    Reference: Bestelli/Levin. ANA p. 82-83, Villon p. 109-111.
+    Reference: Bestelli/Levin. ANA p. 82-83, Villón p. 109-111.
     """
-    if h <= 0 or v <= 0 or w <= 0:
+    if h <= 0 or v <= 0 or wf <= 0:
         return 0.0
-
-    if wf_ya_aplicado:
-        return round(v * h / w, 2)
-
-    denom = math.sqrt(h) * w - 0.132 * v
-    if denom <= 0:
-        return float('inf')
-    return round(h ** 1.5 * v / denom, 2)
+    return round(v * h / wf, 2)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -292,26 +285,30 @@ def diseno_desarenador(
         estado = "OK"
 
     # ── Velocidad de caída ─────────────────
-    if fuente_w == "manual":
-        w_caida = round(v_par / 100, 4)  # cm/s → m/s
-        w_efectiva = w_en_agua_fluyendo(w_caida, v_real, alt)
-        l_sed = lon_sed(alt, v_real, w_caida, wf_ya_aplicado=False)
-    else:
-        w_caida = vel_caida_particula(d_par)
-        w_efectiva = w_en_agua_fluyendo(w_caida, v_real, alt)
-        l_sed = lon_sed(alt, v_real, w_efectiva, wf_ya_aplicado=True)
+    w_caida = (
+        round(v_par / 100, 4)            # manual: cm/s → m/s
+        if fuente_w == "manual"
+        else vel_caida_particula(d_par)  # zanke: desde d
+    )
+    w_efectiva = w_en_agua_fluyendo(w_caida, v_real, alt)
+    l_sed = lon_sed(alt, v_real, w_efectiva)
 
     # ── Vertedero ──────────────────────────
     h_ver = des_cre(q_nave, bas, c_ver)
     p_cresta = round(alt - h_ver, 2)
 
     # ── Condición de limpieza (N-1) ────────
+    # Informativo: con la misma b y h del diseño, se recalcula
+    # el nivel sobre el vertedero y la velocidad real con el
+    # caudal sobrecargado Q/(N-1). No altera el diseño.
     if n_nav > 1:
         q_limpia = round(q / (n_nav - 1), 2)
+        v_real_limpia = round(q_limpia / area, 3) if area > 0 else 0.0
         h_limpia = des_cre(q_limpia, bas, c_ver)
         h_total_limpia = round(p_cresta + h_limpia, 2)
     else:
         q_limpia = 0.0
+        v_real_limpia = 0.0
         h_limpia = 0.0
         h_total_limpia = 0.0
 
@@ -334,6 +331,7 @@ def diseno_desarenador(
         "h_vertedero": h_ver,
         "p_cresta": p_cresta,
         "q_limpia": q_limpia,
+        "v_real_limpia": v_real_limpia,
         "h_limpia": h_limpia,
         "h_total_limpia": h_total_limpia,
         "vel_limite": vel_limite,

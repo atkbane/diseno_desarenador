@@ -2,3 +2,4 @@
 ## las carpetas con entornos virtuales
 
 *.ipynb
+.old/

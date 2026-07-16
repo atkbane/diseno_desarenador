@@ -60,7 +60,8 @@ def _formatear(r: dict, titulo: str, bas: float, alt: float) -> str:
         res += (
             f"{sep}\n"
             "LIMPIEZA (N-1)\n"
-            f"  Caudal por nave (h')  : {r['q_limpia']} m³/s\n"
+            f"  Caudal por nave (q')  : {r['q_limpia']} m³/s\n"
+            f"  V. real (N-1)         : {r['v_real_limpia']} m/s\n"
             f"  Carga vertedero (h')  : {r['h_limpia']} m\n"
             f"  Tirante total (H')    : {r['h_total_limpia']} m\n"
         )

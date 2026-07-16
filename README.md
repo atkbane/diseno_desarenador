@@ -57,6 +57,8 @@ El programa ofrece dos opciones independientes:
 - Coeficiente de Shields: 0.03 (condiciones típicas de desarenador).
 - Flujo en régimen uniforme dentro de cada nave.
 
+> 📖 Detalle completo de fórmulas, derivaciones, referencias bibliográficas y mapeo a funciones del código: ver [`marco_teorico.md`](./marco_teorico.md).
+
 ---
 
 ## ✨ Características
@@ -85,7 +87,8 @@ Para empezar de nuevo, presiona **"Limpiar"**.
 ## 🛠️ Tecnologías
 
 - [Python](https://python.org) — Lógica de cálculo hidráulico (solo `math`, sin numpy).
-- [PySide6](https://doc.qt.io/qtforpython-6/) — Interfaz gráfica de escritorio.
+- [Pyodide](https://pyodide.org/) — Ejecución de Python en el navegador.
+- [Plotly](https://plotly.com/) — Gráficos interactivos (si aplica).
 
 ---
 
@@ -94,13 +97,10 @@ Para empezar de nuevo, presiona **"Limpiar"**.
 ```
 diseno_desarenador/
 ├── desarenador_hydraulics.py   # Lógica de cálculo (constantes, fórmulas)
-├── run_desktop.py              # Interfaz gráfica PySide6 (entry point)
-├── web_bridge.py               # Puente Python/Pyodide (versión web)
+├── web_bridge.py               # Puente Python/Pyodide (entry point web)
 ├── index.html                  # Interfaz web
 ├── marco_teorico.md            # Documentación teórica completa
-├── revision.md                 # Registro de revisiones y decisiones
-├── test_desarenador.py         # Tests unitarios (55 casos)
-├── Testeos_mar.py              # Notebook marimo con pruebas
+├── .old/                       # Código descartado (no se mantiene)
 └── README.md
 ```
 
