@@ -1,519 +1,894 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Diseño de Desarenador</title>
-<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
-<style>
-/* ── Reset & base ── */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background: #f0f2f5;
-    color: #1a1a1a;
-    min-height: 100vh;
-    display: flex;
-    align-items: flex-start;
-    justify-content: center;
-}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diseño de Desarenador</title>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #f0f2f5;
+            color: #333;
+            padding: 16px;
+            min-height: 100vh;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 {
+            text-align: center;
+            color: #1a1a2e;
+            margin-bottom: 8px;
+            font-size: 1.3rem;
+        }
 
-/* ── Container ── */
-.container {
-    display: flex;
-    gap: 16px;
-    padding: 20px;
-    max-width: 1000px;
-    width: 100%;
-}
+        .status-bar {
+            text-align: center;
+            font-size: 0.78rem;
+            color: #888;
+            margin-bottom: 8px;
+            min-height: 1.2em;
+        }
+        .status-bar.ready { color: #27ae60; }
+        .status-bar.error { color: #e74c3c; }
+        .error-msg {
+            color: #e74c3c;
+            font-size: 0.85rem;
+            background: #fff5f5;
+            border: 1px solid #f5c6cb;
+            border-radius: 6px;
+            padding: 8px 12px;
+            margin-bottom: 12px;
+            display: none;
+        }
+        .error-msg.visible { display: block; }
 
-/* ── Columnas ── */
-.col-left {
-    flex: 0 0 300px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-.col-right {
-    flex: 1;
-    min-width: 0;
-}
+        .main-grid {
+            display: grid;
+            grid-template-columns: 340px 1fr;
+            gap: 16px;
+            align-items: start;
+        }
+        .panel {
+            background: #fff;
+            border-radius: 10px;
+            padding: 14px 16px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.07);
+        }
+        .panel h2 {
+            font-size: 0.95rem;
+            color: #1a1a2e;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 5px;
+            margin-bottom: 10px;
+        }
 
-/* ── Card ── */
-.card {
-    background: #fff;
-    border-radius: 8px;
-    padding: 16px;
-    box-shadow: 0 1px 4px rgba(0,0,0,.08);
-}
-.card h3 {
-    font-size: 13px;
-    font-weight: 600;
-    color: #555;
-    text-transform: uppercase;
-    letter-spacing: .5px;
-    margin-bottom: 10px;
-}
+        .form-row { margin-bottom: 8px; }
+        .form-row label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: #555;
+            margin-bottom: 2px;
+        }
+        .form-row .caption {
+            display: block;
+            font-size: 0.7rem;
+            color: #888;
+            margin-top: 2px;
+            font-style: italic;
+        }
+        .form-row input {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            transition: border-color 0.2s;
+        }
+        .form-row input:focus {
+            outline: none;
+            border-color: #4a6cf7;
+            box-shadow: 0 0 0 2px rgba(74,108,247,0.15);
+        }
+        .form-row input.error { border-color: #e74c3c; }
 
-/* ── Form elements ── */
-.form-group {
-    margin-bottom: 8px;
-}
-.form-group label {
-    display: block;
-    font-size: 13px;
-    font-weight: 500;
-    color: #333;
-    margin-bottom: 2px;
-}
-.form-group input[type="text"],
-.form-group input[type="number"] {
-    width: 100%;
-    padding: 6px 8px;
-    font-size: 14px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    transition: border .2s;
-}
-.form-group input:focus {
-    outline: none;
-    border-color: #2a7;
-    box-shadow: 0 0 0 2px rgba(34,170,119,.15);
-}
-.form-group input.error {
-    border-color: #d32;
-    background: #fff5f5;
-}
+        .radio-group {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 2px;
+        }
+        .radio-group label {
+            font-size: 0.82rem;
+            font-weight: 400;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+        }
+        .radio-group input[type="radio"] { accent-color: #4a6cf7; }
 
-/* ── Radio group ── */
-.radio-group {
-    display: flex;
-    gap: 12px;
-    margin-bottom: 4px;
-}
-.radio-group label {
-    font-size: 13px;
-    font-weight: 400;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    cursor: pointer;
-}
-.radio-group input[type="radio"] {
-    accent-color: #2a7;
-}
+        .section-divider {
+            height: 1px;
+            background: #e4e7ef;
+            margin: 10px 0;
+        }
 
-/* ── Buttons ── */
-.buttons {
-    display: flex;
-    gap: 8px;
-    margin-top: 4px;
-}
-.btn {
-    flex: 1;
-    padding: 8px 0;
-    font-size: 14px;
-    font-weight: 600;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background .2s;
-}
-.btn-calc {
-    background: #2a7;
-    color: #fff;
-}
-.btn-calc:hover { background: #1a6; }
-.btn-calc:disabled { background: #999; cursor: not-allowed; }
-.btn-clear {
-    background: #e0e0e0;
-    color: #333;
-}
-.btn-clear:hover { background: #ccc; }
+        .btn {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 7px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.12s, background 0.12s;
+        }
+        .btn:active { transform: scale(0.97); }
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+            width: 100%;
+        }
+        .btn-secondary:hover { background: #d0d0d0; }
 
-/* ── Results ── */
-.results-box {
-    background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 1px 4px rgba(0,0,0,.08);
-    overflow: hidden;
-}
-.results-box pre {
-    margin: 0;
-    padding: 16px;
-    font-family: Consolas, "Courier New", monospace;
-    font-size: 12px;
-    line-height: 1.5;
-    white-space: pre;
-    overflow-x: auto;
-    background: #fafafa;
-    min-height: 300px;
-}
-.results-box .placeholder {
-    padding: 40px 16px;
-    text-align: center;
-    color: #999;
-    font-size: 14px;
-}
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 10px;
+            font-size: 0.82rem;
+            color: #666;
+        }
+        .result-header .titulo {
+            font-weight: 600;
+            color: #1a1a2e;
+        }
 
-/* ── Error box ── */
-.error-box {
-    background: #fee;
-    border: 1px solid #d32;
-    border-radius: 6px;
-    padding: 12px;
-    margin-bottom: 10px;
-    color: #a00;
-    font-size: 13px;
-    font-weight: 500;
-    display: none;
-}
+        .resumen-grid {
+            display: grid;
+            grid-template-columns: 1.3fr 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .res-card {
+            background: #f8f9fc;
+            border-radius: 8px;
+            padding: 10px 12px;
+            border: 1px solid #e4e7ef;
+        }
+        .res-card.destacado {
+            background: linear-gradient(135deg, #4a6cf7, #3b5de7);
+            color: #fff;
+            border-color: transparent;
+        }
+        .res-card .res-label {
+            font-size: 0.7rem;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 500;
+        }
+        .res-card.destacado .res-label { color: rgba(255,255,255,0.85); }
+        .res-card .res-value {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #1a1a2e;
+            margin-top: 2px;
+            font-variant-numeric: tabular-nums;
+        }
+        .res-card.destacado .res-value { color: #fff; font-size: 1.5rem; }
+        .res-card .res-unit {
+            font-size: 0.75rem;
+            color: #888;
+            margin-left: 3px;
+            font-weight: 400;
+        }
+        .res-card.destacado .res-unit { color: rgba(255,255,255,0.85); }
 
-/* ── Loading overlay ── */
-#loading-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    z-index: 9999;
-    background: rgba(0,0,0,.55);
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    gap: 16px;
-}
-#loading-overlay.active { display: flex; }
-.spinner {
-    width: 48px; height: 48px;
-    border: 5px solid rgba(255,255,255,.3);
-    border-top-color: #fff;
-    border-radius: 50%;
-    animation: spin .7s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-#loading-overlay p {
-    color: #fff;
-    font-size: 18px;
-    font-weight: 500;
-}
+        .group-title {
+            font-size: 0.78rem;
+            color: #555;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+            margin: 12px 0 6px;
+        }
+        .group-title:first-child { margin-top: 0; }
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+        .mini-card {
+            background: #f8f9fc;
+            border-radius: 6px;
+            padding: 6px 10px;
+            border: 1px solid #e4e7ef;
+        }
+        .mini-card .mini-label {
+            font-size: 0.68rem;
+            color: #888;
+        }
+        .mini-card .mini-value {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #1a1a2e;
+            font-variant-numeric: tabular-nums;
+        }
+        .mini-card .mini-value .unit {
+            font-size: 0.7rem;
+            color: #888;
+            font-weight: 400;
+            margin-left: 2px;
+        }
 
-/* ── Responsive ── */
-@media (max-width: 768px) {
-    .container { flex-direction: column; padding: 12px; }
-    .col-left { flex: 1; }
-}
-</style>
+        .bar-chart {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .bar-row {
+            display: grid;
+            grid-template-columns: 100px 1fr 70px;
+            gap: 8px;
+            align-items: center;
+        }
+        .bar-label { color: #555; font-weight: 500; font-size: 0.78rem; }
+        .bar-track {
+            background: #e4e7ef;
+            height: 10px;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        .bar-fill {
+            background: linear-gradient(90deg, #4a6cf7, #3b5de7);
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 5px;
+        }
+        .bar-fill.limit { background: linear-gradient(90deg, #27ae60, #219955); }
+        .bar-fill.real { background: linear-gradient(90deg, #e67e22, #d35400); }
+        .bar-value {
+            text-align: right;
+            font-weight: 600;
+            color: #1a1a2e;
+            font-variant-numeric: tabular-nums;
+            font-size: 0.8rem;
+        }
+        .bar-empty {
+            color: #aaa;
+            font-style: italic;
+            font-size: 0.82rem;
+            text-align: center;
+            padding: 12px;
+        }
+
+        .summary-panel {
+            margin-top: 16px;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.07);
+            overflow: hidden;
+        }
+        .summary-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 16px;
+            cursor: pointer;
+            user-select: none;
+            background: #f8f9fc;
+            border-bottom: 1px solid #e4e7ef;
+            transition: background 0.15s;
+        }
+        .summary-toggle:hover { background: #f0f2f5; }
+        .summary-toggle .chevron {
+            font-size: 10px;
+            color: #888;
+            transition: transform 0.2s;
+            display: inline-block;
+        }
+        .summary-toggle .chevron.open { transform: rotate(90deg); }
+        .summary-toggle .toggle-label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #555;
+            flex: 1;
+        }
+        .btn-copy {
+            padding: 5px 12px;
+            background: #4a6cf7;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .btn-copy:hover { background: #3b5de7; }
+        .summary-body {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        .summary-body.open { max-height: 700px; overflow-y: auto; }
+        .summary-body pre {
+            margin: 0;
+            padding: 14px 16px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 0.82rem;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            background: #fafbfc;
+        }
+        .summary-body .placeholder {
+            padding: 30px 16px;
+            text-align: center;
+            color: #aaa;
+            font-style: italic;
+        }
+
+        #overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.45);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        #overlay.visible { display: flex; }
+        #overlay .card {
+            background: #fff;
+            border-radius: 16px;
+            padding: 36px 44px;
+            text-align: center;
+            max-width: 400px;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+        }
+        .spinner {
+            width: 44px;
+            height: 44px;
+            border: 5px solid #e0e0e0;
+            border-top-color: #4a6cf7;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 16px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        #overlay .mensaje { font-size: 1rem; font-weight: 500; color: #333; }
+        #overlay .submensaje { font-size: 0.8rem; color: #888; margin-top: 6px; }
+
+        @media (max-width: 900px) {
+            .main-grid { grid-template-columns: 1fr; }
+            .resumen-grid { grid-template-columns: 1fr 1fr; }
+        }
+        @media (max-width: 500px) {
+            body { padding: 10px; }
+            h1 { font-size: 1.1rem; }
+            .resumen-grid, .grid-2 { grid-template-columns: 1fr; }
+            #overlay .card { padding: 24px 16px; margin: 0 12px; }
+        }
+    </style>
 </head>
 <body>
+    <div class="container">
+        <h1>Diseño de Desarenador</h1>
+        <div class="status-bar" id="statusBar">Cargando Pyodide…</div>
+        <div class="error-msg" id="errorMsg"></div>
 
-<!-- Loading overlay -->
-<div id="loading-overlay">
-    <div class="spinner"></div>
-    <p id="loading-message">Cargando Pyodide...</p>
-</div>
+        <div class="main-grid">
+            <div class="panel">
+                <h2>Datos del proyecto</h2>
 
-<div class="container">
-    <!-- LEFT COLUMN: Form -->
-    <div class="col-left">
-        <div class="card">
-            <h3>Proyecto</h3>
-            <div class="form-group">
-                <input type="text" id="inp-titulo" placeholder="Nombre del proyecto…">
+                <div class="form-row">
+                    <label for="titulo">Título del proyecto</label>
+                    <input type="text" id="titulo" placeholder="Nombre del proyecto…">
+                </div>
+
+                <div class="section-divider"></div>
+
+                <div class="form-row">
+                    <label>Velocidad límite</label>
+                    <div class="radio-group">
+                        <label><input type="radio" name="vel_limite" value="camp" checked> Camp (estándar)</label>
+                        <label><input type="radio" name="vel_limite" value="shields"> Shields</label>
+                    </div>
+                    <span class="caption">→ método de cálculo de v. máxima admisible</span>
+                </div>
+
+                <div class="form-row">
+                    <label>Fuente de w (vel. de caída)</label>
+                    <div class="radio-group">
+                        <label><input type="radio" name="fuente_w" value="manual" checked> Manual</label>
+                        <label><input type="radio" name="fuente_w" value="zanke"> Zanke (auto)</label>
+                    </div>
+                    <span class="caption" id="captionW">→ ingresas w de tablas (Arkhangelski, Sudry)</span>
+                </div>
+
+                <div class="section-divider"></div>
+
+                <div class="form-row">
+                    <label for="inp-q">Caudal Q (m³/s)</label>
+                    <input type="number" id="inp-q" step="any" min="0.001">
+                </div>
+
+                <div class="form-row">
+                    <label for="inp-n-nav">N° de naves</label>
+                    <input type="number" id="inp-n-nav" value="3" min="1" step="1">
+                </div>
+
+                <div class="form-row">
+                    <label for="inp-d">Diámetro de partícula d (mm)</label>
+                    <input type="number" id="inp-d" step="any" min="0.001">
+                </div>
+
+                <div class="form-row">
+                    <label for="inp-b">Ancho de nave b (m)</label>
+                    <input type="number" id="inp-b" step="any" min="0.001">
+                </div>
+
+                <div class="form-row">
+                    <label for="inp-h">Tirante de agua h (m)</label>
+                    <input type="number" id="inp-h" step="any" min="0.001">
+                </div>
+
+                <div class="form-row">
+                    <label for="inp-c">Coeficiente del vertedero C</label>
+                    <input type="number" id="inp-c" step="any" min="0.01" value="2.00">
+                    <span class="caption">→ Creager: 2.00 (estándar)</span>
+                </div>
+
+                <div class="form-row" id="group-v-par">
+                    <label for="inp-v-par">Vel. de caída w (cm/s)</label>
+                    <input type="number" id="inp-v-par" step="any" min="0.001">
+                    <span class="caption">→ solo si fuente = Manual</span>
+                </div>
+
+                <div class="section-divider"></div>
+
+                <button class="btn btn-secondary" id="btnLimpiar">Limpiar</button>
+            </div>
+
+            <div class="panel">
+                <div class="result-header">
+                    <span class="titulo" id="resTitulo">—</span>
+                    <span id="resMetodo">—</span>
+                </div>
+
+                <div class="resumen-grid">
+                    <div class="res-card destacado">
+                        <div class="res-label">Long. sedimentación</div>
+                        <div class="res-value" id="resLonSed">—<span class="res-unit">m</span></div>
+                    </div>
+                    <div class="res-card">
+                        <div class="res-label">V. real (Q/Área)</div>
+                        <div class="res-value" id="resVReal">—<span class="res-unit">m/s</span></div>
+                    </div>
+                    <div class="res-card">
+                        <div class="res-label">Margen</div>
+                        <div class="res-value" id="resMargen">—<span class="res-unit">%</span></div>
+                    </div>
+                </div>
+
+                <div class="group-title">Comparación de velocidades</div>
+                <div class="bar-chart" id="barChart">
+                    <div class="bar-empty">Ingresa los datos para ver la comparación.</div>
+                </div>
+
+                <div class="group-title">Dimensiones</div>
+                <div class="grid-2">
+                    <div class="mini-card">
+                        <div class="mini-label">Área</div>
+                        <div class="mini-value" id="resArea">—<span class="unit">m²</span></div>
+                    </div>
+                    <div class="mini-card">
+                        <div class="mini-label">Perímetro mojado</div>
+                        <div class="mini-value" id="resPeri">—<span class="unit">m</span></div>
+                    </div>
+                    <div class="mini-card">
+                        <div class="mini-label">Radio hidráulico</div>
+                        <div class="mini-value" id="resRh">—<span class="unit">m</span></div>
+                    </div>
+                    <div class="mini-card">
+                        <div class="mini-label">Altura bisel</div>
+                        <div class="mini-value" id="resBisel">—<span class="unit">m</span></div>
+                    </div>
+                    <div class="mini-card">
+                        <div class="mini-label">Q por nave</div>
+                        <div class="mini-value" id="resQNave">—<span class="unit">m³/s</span></div>
+                    </div>
+                    <div class="mini-card">
+                        <div class="mini-label">w efectiva (Bestelli)</div>
+                        <div class="mini-value" id="resWf">—<span class="unit">m/s</span></div>
+                    </div>
+                </div>
+
+                <div class="group-title">Vertedero (cresta redondeada)</div>
+                <div class="grid-2">
+                    <div class="mini-card">
+                        <div class="mini-label">Carga sobre cresta h</div>
+                        <div class="mini-value" id="resHVer">—<span class="unit">m</span></div>
+                    </div>
+                    <div class="mini-card">
+                        <div class="mini-label">Altura cresta P</div>
+                        <div class="mini-value" id="resPCresta">—<span class="unit">m</span></div>
+                    </div>
+                </div>
+
+                <div class="group-title" id="titleLimpia" style="display:none;">Limpieza (N-1) — informativo</div>
+                <div class="grid-2" id="gridLimpia" style="display:none;">
+                    <div class="mini-card">
+                        <div class="mini-label">Q por nave (q')</div>
+                        <div class="mini-value" id="resQLimpia">—<span class="unit">m³/s</span></div>
+                    </div>
+                    <div class="mini-card">
+                        <div class="mini-label">V. real (N-1)</div>
+                        <div class="mini-value" id="resVRealLimpia">—<span class="unit">m/s</span></div>
+                    </div>
+                    <div class="mini-card">
+                        <div class="mini-label">Carga vertedero (N-1)</div>
+                        <div class="mini-value" id="resHLimpia">—<span class="unit">m</span></div>
+                    </div>
+                    <div class="mini-card">
+                        <div class="mini-label">Tirante total H'</div>
+                        <div class="mini-value" id="resHTotalLimpia">—<span class="unit">m</span></div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <div class="card">
-            <h3>Velocidad Límite</h3>
-            <div class="radio-group">
-                <label><input type="radio" name="vel_limite" value="camp" checked> Camp</label>
-                <label><input type="radio" name="vel_limite" value="shields"> Shields</label>
+        <div class="summary-panel">
+            <div class="summary-toggle" id="summaryToggle">
+                <span class="chevron" id="summaryChevron">▶</span>
+                <span class="toggle-label">Memoria de cálculo</span>
+                <button class="btn-copy" id="btnCopy">Copiar</button>
             </div>
-        </div>
-
-        <div class="card">
-            <h3>Fuente de w</h3>
-            <div class="radio-group">
-                <label><input type="radio" name="fuente_w" value="manual" checked> Manual</label>
-                <label><input type="radio" name="fuente_w" value="zanke"> Zanke</label>
-            </div>
-        </div>
-
-        <div class="card">
-            <h3>Datos de Entrada</h3>
-
-            <div class="form-group">
-                <label for="inp-q">Caudal (m³/s)</label>
-                <input type="number" id="inp-q" step="any" min="0.001" required>
-            </div>
-
-            <div class="form-group">
-                <label for="inp-n-nav">N° Naves</label>
-                <input type="number" id="inp-n-nav" value="3" min="1" step="1" required>
-            </div>
-
-            <div class="form-group">
-                <label for="inp-d">Diámetro (mm)</label>
-                <input type="number" id="inp-d" step="any" min="0.001" required>
-            </div>
-
-            <div class="form-group">
-                <label for="inp-c">C. Vertedero</label>
-                <input type="number" id="inp-c" step="any" min="0.01" value="2.00" required>
-            </div>
-
-            <div class="form-group">
-                <label for="inp-b">Ancho nave (m)</label>
-                <input type="number" id="inp-b" step="any" min="0.001" required>
-            </div>
-
-            <div class="form-group">
-                <label for="inp-h">Tirante agua (m)</label>
-                <input type="number" id="inp-h" step="any" min="0.001" required>
-            </div>
-
-            <div class="form-group" id="group-v-par">
-                <label for="inp-v-par">Vel. caída (cm/s)</label>
-                <input type="number" id="inp-v-par" step="any" min="0.001" required>
-            </div>
-
-            <div class="buttons">
-                <button class="btn btn-clear" id="btn-limpiar">Limpiar</button>
-                <button class="btn btn-calc" id="btn-calcular">Calcular</button>
+            <div class="summary-body" id="summaryBody">
+                <div class="placeholder" id="summaryPlaceholder">La memoria de cálculo se actualiza al modificar los datos.</div>
+                <pre id="resultText" style="display:none;"></pre>
             </div>
         </div>
     </div>
 
-    <!-- RIGHT COLUMN: Results -->
-    <div class="col-right">
-        <div id="error-box" class="error-box"></div>
-        <div class="results-box">
-            <pre id="result-text"><span class="placeholder">Los resultados aparecerán aquí.</span></pre>
+    <div id="overlay">
+        <div class="card">
+            <div class="spinner"></div>
+            <div class="mensaje" id="overlayMensaje">Preparando…</div>
+            <div class="submensaje" id="overlaySubmensaje"></div>
         </div>
     </div>
-</div>
 
-<script>
-(function() {
-    'use strict';
+    <script>
+    (function() {
+        'use strict';
 
-    // ── DOM references ──
-    const $ = id => document.getElementById(id);
-    const inp_titulo = $('inp-titulo');
-    const inp_q      = $('inp-q');
-    const inp_n_nav  = $('inp-n-nav');
-    const inp_d      = $('inp-d');
-    const inp_c      = $('inp-c');
-    const inp_b      = $('inp-b');
-    const inp_h      = $('inp-h');
-    const inp_v_par  = $('inp-v-par');
-    const vel_radios = document.querySelectorAll('input[name="vel_limite"]');
-    const fw_radios  = document.querySelectorAll('input[name="fuente_w"]');
-    const btn_calc   = $('btn-calcular');
-    const btn_limpiar= $('btn-limpiar');
-    const result_pre = $('result-text');
-    const error_box  = $('error-box');
-    const overlay    = $('loading-overlay');
-    const load_msg   = $('loading-message');
-    const group_v_par= $('group-v-par');
+        let pyodide = null;
+        let pyodideReady = false;
+        let pyodideLoading = false;
+        let recalcTimer = null;
 
-    let pyodide_ready = false;
-    let pyodide = null;
+        const $ = id => document.getElementById(id);
+        const statusBar = $('statusBar');
+        const errorMsg = $('errorMsg');
+        const titulo = $('titulo');
+        const inpQ = $('inp-q');
+        const inpNNav = $('inp-n-nav');
+        const inpD = $('inp-d');
+        const inpB = $('inp-b');
+        const inpH = $('inp-h');
+        const inpC = $('inp-c');
+        const inpVPar = $('inp-v-par');
+        const groupVPar = $('group-v-par');
+        const captionW = $('captionW');
+        const velRadios = document.querySelectorAll('input[name="vel_limite"]');
+        const fwRadios = document.querySelectorAll('input[name="fuente_w"]');
+        const btnLimpiar = $('btnLimpiar');
+        const resultText = $('resultText');
+        const summaryPlaceholder = $('summaryPlaceholder');
+        const summaryBody = $('summaryBody');
+        const summaryChevron = $('summaryChevron');
+        const btnCopy = $('btnCopy');
+        const overlay = $('overlay');
+        const overlayMsg = $('overlayMensaje');
+        const overlaySub = $('overlaySubmensaje');
 
-    // ── Conditional field visibility ──
-    function updateFuenteW() {
-        const checked = document.querySelector('input[name="fuente_w"]:checked');
-        const is_manual = checked && checked.value === 'manual';
-        group_v_par.style.display = is_manual ? 'block' : 'none';
-        inp_v_par.required = is_manual;
-    }
-    fw_radios.forEach(r => r.addEventListener('change', updateFuenteW));
-    updateFuenteW();
+        function setStatus(text, cls) {
+            statusBar.textContent = text;
+            statusBar.className = 'status-bar' + (cls ? ' ' + cls : '');
+        }
+        function showError(msg) {
+            errorMsg.textContent = msg;
+            errorMsg.classList.add('visible');
+        }
+        function hideError() {
+            errorMsg.classList.remove('visible');
+        }
+        function showOverlay(msg, sub) {
+            overlayMsg.textContent = msg;
+            overlaySub.textContent = sub || '';
+            overlay.classList.add('visible');
+        }
+        function hideOverlay() {
+            overlay.classList.remove('visible');
+        }
+        function fmt(n, d) {
+            if (typeof n !== 'number' || !isFinite(n)) return '—';
+            return n.toFixed(d);
+        }
 
-    // ── Show/hide overlay ──
-    function showOverlay(msg) {
-        load_msg.textContent = msg || 'Procesando...';
-        overlay.classList.add('active');
-    }
-    function hideOverlay() {
-        overlay.classList.remove('active');
-    }
+        function updateFuenteW() {
+            const checked = document.querySelector('input[name="fuente_w"]:checked');
+            const isManual = checked && checked.value === 'manual';
+            groupVPar.style.display = isManual ? 'block' : 'none';
+            inpVPar.required = isManual;
+            captionW.textContent = isManual
+                ? '→ ingresas w de tablas (Arkhangelski, Sudry)'
+                : '→ se calcula desde d con Zanke (1977)';
+        }
+        fwRadios.forEach(r => r.addEventListener('change', () => {
+            updateFuenteW();
+            scheduleRecalc();
+        }));
+        velRadios.forEach(r => r.addEventListener('change', scheduleRecalc));
+        updateFuenteW();
 
-    // ── Show error ──
-    function showError(msg) {
-        error_box.textContent = msg;
-        error_box.style.display = 'block';
-    }
-    function hideError() {
-        error_box.style.display = 'none';
-    }
-
-    // ── Init Pyodide ──
-    async function initPyodide() {
-        if (pyodide_ready) return;
-        showOverlay('Cargando Pyodide (primera vez puede tardar ~10s)...');
-        try {
-            pyodide = await loadPyodide({
-                indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/',
-            });
-            // Load web_bridge.py and desarenador_hydraulics.py as text
-            const resp1 = await fetch('web_bridge.py');
-            const resp2 = await fetch('desarenador_hydraulics.py');
-            if (!resp1.ok || !resp2.ok) {
-                throw new Error('No se pudieron cargar los módulos Python. Asegúrate de que web_bridge.py y desarenador_hydraulics.py estén en la misma carpeta que index.html.');
+        async function cargarPyodide() {
+            if (pyodideReady) return true;
+            if (pyodideLoading) {
+                while (!pyodideReady) await new Promise(r => setTimeout(r, 200));
+                return true;
             }
-            const code_main = await resp1.text();
-            const code_hydr = await resp2.text();
-            // Register filesystem
-            pyodide.FS.writeFile('/desarenador_hydraulics.py', code_hydr);
-            pyodide.FS.writeFile('/web_bridge.py', code_main);
-            // Eval hydraulics first, then web_bridge
-            pyodide.runPython(`
+            pyodideLoading = true;
+            showOverlay('Cargando Pyodide…', 'Descargando el motor de Python para el navegador');
+            try {
+                pyodide = await loadPyodide({
+                    indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/',
+                });
+                showOverlay('Cargando módulos…', 'desarenador_hydraulics.py y web_bridge.py');
+                const r1 = await fetch('desarenador_hydraulics.py');
+                const r2 = await fetch('web_bridge.py');
+                if (!r1.ok || !r2.ok) throw new Error('No se pudieron descargar los módulos.');
+                pyodide.FS.writeFile('/desarenador_hydraulics.py', await r1.text());
+                pyodide.FS.writeFile('/web_bridge.py', await r2.text());
+                pyodide.runPython(`
 import sys
 sys.path.insert(0, '/')
 exec(open('/desarenador_hydraulics.py').read())
 exec(open('/web_bridge.py').read())
-`);
-            pyodide_ready = true;
-        } catch (err) {
-            showError('Error al cargar Pyodide: ' + err.message);
-            console.error(err);
-        } finally {
-            hideOverlay();
-        }
-    }
-
-    // ── Validate ──
-    function validate() {
-        const fields = [
-            { el: inp_q,      name: 'Caudal' },
-            { el: inp_d,      name: 'Diámetro' },
-            { el: inp_b,      name: 'Ancho de nave' },
-            { el: inp_h,      name: 'Tirante de agua' },
-        ];
-        const n_nav = parseInt(inp_n_nav.value, 10);
-        const c_val = parseFloat(inp_c.value);
-        let valid = true;
-
-        // Clear errors
-        document.querySelectorAll('.error').forEach(el => el.classList.remove('error'));
-
-        for (const f of fields) {
-            const v = parseFloat(f.el.value);
-            if (!f.el.value || isNaN(v) || v <= 0) {
-                f.el.classList.add('error');
-                valid = false;
+                `);
+                pyodideReady = true;
+                hideOverlay();
+                return true;
+            } catch (err) {
+                hideOverlay();
+                showError('Error al cargar Pyodide: ' + err.message);
+                setStatus('Error al cargar el motor de cálculo', 'error');
+                pyodideLoading = false;
+                return false;
             }
         }
 
-        if (isNaN(n_nav) || n_nav < 1 || n_nav !== Math.floor(n_nav)) {
-            inp_n_nav.classList.add('error');
-            valid = false;
-        }
+        function obtenerParametros() {
+            const t = titulo.value.trim() || '—';
+            const q = parseFloat(inpQ.value);
+            const nNav = parseInt(inpNNav.value, 10);
+            const d = parseFloat(inpD.value);
+            const b = parseFloat(inpB.value);
+            const h = parseFloat(inpH.value);
+            const c = parseFloat(inpC.value);
+            const isManual = document.querySelector('input[name="fuente_w"]:checked').value === 'manual';
+            const vp = parseFloat(inpVPar.value);
 
-        if (isNaN(c_val) || c_val <= 0) {
-            inp_c.classList.add('error');
-            valid = false;
-        }
+            const errores = [];
+            if (isNaN(q) || q <= 0) errores.push('Caudal debe ser > 0');
+            if (isNaN(nNav) || nNav < 1) errores.push('N° naves debe ser ≥ 1');
+            if (isNaN(d) || d <= 0) errores.push('Diámetro debe ser > 0');
+            if (isNaN(b) || b <= 0) errores.push('Ancho debe ser > 0');
+            if (isNaN(h) || h <= 0) errores.push('Tirante debe ser > 0');
+            if (isNaN(c) || c <= 0) errores.push('C debe ser > 0');
+            if (isManual && (isNaN(vp) || vp <= 0)) errores.push('w debe ser > 0');
 
-        const is_manual = document.querySelector('input[name="fuente_w"]:checked').value === 'manual';
-        if (is_manual) {
-            const vp = parseFloat(inp_v_par.value);
-            if (!inp_v_par.value || isNaN(vp) || vp <= 0) {
-                inp_v_par.classList.add('error');
-                valid = false;
-            }
-        }
+            if (errores.length > 0) return { ok: false, errores };
 
-        if (!valid) {
-            showError('Corrige los campos resaltados (deben ser valores numéricos positivos).');
-        }
-        return valid;
-    }
-
-    // ── Calculate ──
-    async function calcular() {
-        hideError();
-        if (!validate()) return;
-
-        if (!pyodide_ready) {
-            btn_calc.disabled = true;
-            await initPyodide();
-        }
-
-        if (!pyodide_ready) {
-            btn_calc.disabled = false;
-            return;
-        }
-
-        showOverlay('Calculando...');
-
-        try {
-            const vel_limite = document.querySelector('input[name="vel_limite"]:checked').value;
-            const fuente_w   = document.querySelector('input[name="fuente_w"]:checked').value;
             const params = {
-                titulo: inp_titulo.value || '',
-                q: parseFloat(inp_q.value),
-                d_par: parseFloat(inp_d.value),
-                bas: parseFloat(inp_b.value),
-                alt: parseFloat(inp_h.value),
-                n_nav: parseInt(inp_n_nav.value, 10),
-                c_ver: parseFloat(inp_c.value),
-                vel_limite: vel_limite,
-                fuente_w: fuente_w,
+                titulo: t,
+                q, d_par: d, bas: b, alt: h, n_nav: nNav, c_ver: c,
+                vel_limite: document.querySelector('input[name="vel_limite"]:checked').value,
+                fuente_w: isManual ? 'manual' : 'zanke',
             };
-            if (fuente_w === 'manual') {
-                params.v_par = parseFloat(inp_v_par.value);
-            }
-
-            const result = pyodide.runPython(
-                `ejecutar_diseno(${JSON.stringify(params)})`
-            );
-            const obj = result.toJs();
-
-            if (obj.ok) {
-                result_pre.textContent = obj.texto;
-            } else {
-                showError(obj.error || 'Error desconocido en el cálculo.');
-                result_pre.textContent = '';
-            }
-        } catch (err) {
-            showError('Error: ' + err.message);
-            console.error(err);
-        } finally {
-            hideOverlay();
-            btn_calc.disabled = false;
+            if (isManual) params.v_par = vp;
+            return { ok: true, params };
         }
-    }
 
-    // ── Clear ──
-    function limpiar() {
-        inp_titulo.value = '';
-        inp_q.value = '';
-        inp_n_nav.value = '3';
-        inp_d.value = '';
-        inp_c.value = '2.00';
-        inp_b.value = '';
-        inp_h.value = '';
-        inp_v_par.value = '';
-        document.querySelector('input[name="vel_limite"][value="camp"]').checked = true;
-        document.querySelector('input[name="fuente_w"][value="manual"]').checked = true;
-        updateFuenteW();
-        result_pre.innerHTML = '<span class="placeholder">Los resultados aparecerán aquí.</span>';
-        hideError();
-        document.querySelectorAll('.error').forEach(el => el.classList.remove('error'));
-    }
+        function scheduleRecalc() {
+            if (recalcTimer) clearTimeout(recalcTimer);
+            recalcTimer = setTimeout(recalcular, 80);
+        }
 
-    // ── Events ──
-    btn_calc.addEventListener('click', calcular);
-    btn_limpiar.addEventListener('click', limpiar);
+        async function recalcular() {
+            if (!pyodideReady) {
+                const ok = await cargarPyodide();
+                if (!ok) return;
+            }
+            const { ok, params, errores } = obtenerParametros();
+            if (!ok) {
+                limpiarResultados();
+                setStatus(errores[0] || 'Ingresa datos válidos para calcular.', '');
+                return;
+            }
+            try {
+                const paramsJSON = JSON.stringify(params);
+                const resultadoJSON = pyodide.runPython(`
+import json
+import web_bridge
+params = json.loads(${JSON.stringify(paramsJSON)})
+result = web_bridge.ejecutar_diseno(params)
+json.dumps(result)
+                `);
+                const r = JSON.parse(resultadoJSON);
+                if (!r.ok) {
+                    limpiarResultados();
+                    setStatus(r.error || 'Error de cálculo', 'error');
+                    return;
+                }
+                aplicarResultados(r);
+                hideError();
+            } catch (err) {
+                console.error('recalcular:', err);
+            }
+        }
 
-    // ── Auto-init Pyodide in background ──
-    // Start loading Pyodide silently after page loads
-    window.addEventListener('load', () => {
-        // Small delay so UI renders first
-        setTimeout(initPyodide, 500);
-    });
+        function aplicarResultados(r) {
+            const d = r.datos;
+            const t = titulo.value.trim() || '—';
+            $('resTitulo').textContent = t;
 
-})();
-</script>
+            const velLabel = d.vel_limite === 'camp' ? 'Camp' : 'Shields';
+            const wLabel = d.fuente_w === 'manual' ? 'Manual' : 'Zanke';
+            $('resMetodo').textContent = `v.límite: ${velLabel} · w: ${wLabel}`;
+
+            $('resLonSed').innerHTML = `${fmt(d.lon_sed, 2)}<span class="res-unit">m</span>`;
+            $('resVReal').innerHTML = `${fmt(d.v_real, 3)}<span class="res-unit">m/s</span>`;
+            $('resMargen').innerHTML = `${fmt(d.margen_pct, 1)}<span class="res-unit">%</span>`;
+
+            $('resArea').innerHTML = `${fmt(d.area, 2)}<span class="unit">m²</span>`;
+            $('resPeri').innerHTML = `${fmt(d.perimetro, 2)}<span class="unit">m</span>`;
+            $('resRh').innerHTML = `${fmt(d.radio_hid, 2)}<span class="unit">m</span>`;
+            $('resBisel').innerHTML = `${fmt(d.alt_bisel, 2)}<span class="unit">m</span>`;
+            $('resQNave').innerHTML = `${fmt(d.q_nave, 2)}<span class="unit">m³/s</span>`;
+            $('resWf').innerHTML = `${fmt(d.w_efectiva, 4)}<span class="unit">m/s</span>`;
+
+            $('resHVer').innerHTML = `${fmt(d.h_vertedero, 2)}<span class="unit">m</span>`;
+            $('resPCresta').innerHTML = `${fmt(d.p_cresta, 2)}<span class="unit">m</span>`;
+
+            const showLimpia = (d.q_limpia || 0) > 0;
+            $('titleLimpia').style.display = showLimpia ? 'block' : 'none';
+            $('gridLimpia').style.display = showLimpia ? 'grid' : 'none';
+            if (showLimpia) {
+                $('resQLimpia').innerHTML = `${fmt(d.q_limpia, 2)}<span class="unit">m³/s</span>`;
+                $('resVRealLimpia').innerHTML = `${fmt(d.v_real_limpia, 3)}<span class="unit">m/s</span>`;
+                $('resHLimpia').innerHTML = `${fmt(d.h_limpia, 2)}<span class="unit">m</span>`;
+                $('resHTotalLimpia').innerHTML = `${fmt(d.h_total_limpia, 2)}<span class="unit">m</span>`;
+            }
+
+            renderBarChart(d);
+
+            resultText.textContent = r.texto;
+            resultText.style.display = 'block';
+            summaryPlaceholder.style.display = 'none';
+
+            setStatus(`Actualizado · ${velLabel} + ${wLabel}`, 'ready');
+        }
+
+        function renderBarChart(d) {
+            const chart = $('barChart');
+            const items = [{ label: 'V. real', val: d.v_real, cls: 'real' }];
+            if (d.v_camp > 0) items.push({ label: 'Límite Camp', val: d.v_camp, cls: 'limit' });
+            if (d.v_shields > 0) items.push({ label: 'Límite Shields', val: d.v_shields, cls: 'limit' });
+            if (items.length === 1 && d.v_real === 0) {
+                chart.innerHTML = '<div class="bar-empty">Sin datos.</div>';
+                return;
+            }
+            const max = Math.max(...items.map(it => it.val), 1e-9);
+            chart.innerHTML = items.map(it => {
+                const pct = Math.max(2, (it.val / max) * 100);
+                return `
+                    <div class="bar-row">
+                        <span class="bar-label">${it.label}</span>
+                        <div class="bar-track">
+                            <div class="bar-fill ${it.cls}" style="width: ${pct}%;"></div>
+                        </div>
+                        <span class="bar-value">${it.val.toFixed(3)} m/s</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function limpiarResultados() {
+            $('resTitulo').textContent = '—';
+            $('resMetodo').textContent = '—';
+            $('resLonSed').innerHTML = '—<span class="res-unit">m</span>';
+            $('resVReal').innerHTML = '—<span class="res-unit">m/s</span>';
+            $('resMargen').innerHTML = '—<span class="res-unit">%</span>';
+            $('resArea').innerHTML = '—<span class="unit">m²</span>';
+            $('resPeri').innerHTML = '—<span class="unit">m</span>';
+            $('resRh').innerHTML = '—<span class="unit">m</span>';
+            $('resBisel').innerHTML = '—<span class="unit">m</span>';
+            $('resQNave').innerHTML = '—<span class="unit">m³/s</span>';
+            $('resWf').innerHTML = '—<span class="unit">m/s</span>';
+            $('resHVer').innerHTML = '—<span class="unit">m</span>';
+            $('resPCresta').innerHTML = '—<span class="unit">m</span>';
+            $('resQLimpia').innerHTML = '—<span class="unit">m³/s</span>';
+            $('resVRealLimpia').innerHTML = '—<span class="unit">m/s</span>';
+            $('resHLimpia').innerHTML = '—<span class="unit">m</span>';
+            $('resHTotalLimpia').innerHTML = '—<span class="unit">m</span>';
+            $('titleLimpia').style.display = 'none';
+            $('gridLimpia').style.display = 'none';
+            $('barChart').innerHTML = '<div class="bar-empty">Ingresa los datos para ver la comparación.</div>';
+            resultText.style.display = 'none';
+            summaryPlaceholder.style.display = 'block';
+            summaryPlaceholder.textContent = 'La memoria de cálculo se actualiza al modificar los datos.';
+        }
+
+        function toggleSummary() {
+            summaryBody.classList.toggle('open');
+            summaryChevron.classList.toggle('open');
+        }
+        $('summaryToggle').addEventListener('click', toggleSummary);
+
+        function copiarReporte() {
+            const text = resultText.textContent;
+            if (!text) return;
+            navigator.clipboard.writeText(text).then(() => {
+                const orig = btnCopy.textContent;
+                btnCopy.textContent = '✓ Copiado';
+                setTimeout(() => { btnCopy.textContent = orig; }, 1500);
+            }, () => {
+                showError('No se pudo copiar al portapapeles.');
+            });
+        }
+        btnCopy.addEventListener('click', e => { e.stopPropagation(); copiarReporte(); });
+
+        function limpiar() {
+            titulo.value = '';
+            inpQ.value = '';
+            inpNNav.value = '3';
+            inpD.value = '';
+            inpB.value = '';
+            inpH.value = '';
+            inpC.value = '2.00';
+            inpVPar.value = '';
+            document.querySelector('input[name="vel_limite"][value="camp"]').checked = true;
+            document.querySelector('input[name="fuente_w"][value="manual"]').checked = true;
+            updateFuenteW();
+            limpiarResultados();
+            hideError();
+            summaryBody.classList.remove('open');
+            summaryChevron.classList.remove('open');
+        }
+        btnLimpiar.addEventListener('click', limpiar);
+
+        const inputs = [titulo, inpQ, inpNNav, inpD, inpB, inpH, inpC, inpVPar];
+        inputs.forEach(inp => {
+            inp.addEventListener('input', scheduleRecalc);
+            inp.addEventListener('change', scheduleRecalc);
+        });
+
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Enter' && e.target.tagName === 'INPUT') {
+                if (recalcTimer) clearTimeout(recalcTimer);
+                recalcular();
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            cargarPyodide().then(ok => {
+                if (ok) setStatus('Motor listo · modificá los datos para recalcular', 'ready');
+            });
+        });
+    })();
+    </script>
 </body>
 </html>

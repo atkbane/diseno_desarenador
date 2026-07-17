@@ -66,10 +66,11 @@ El programa ofrece dos opciones independientes:
 - **Dos opciones independientes** — Velocidad límite (Camp/Shields) y Fuente de w (Manual/Zanke).
 - **4 combinaciones posibles** — Camp+Manual, Camp+Zanke, Shields+Manual, Shields+Zanke.
 - **Velocidad de caída condicional** — campo visible solo cuando se selecciona "Manual".
-- **Validación en tiempo real** — campos resaltados en rojo si los valores no son válidos.
-- **Resultados formateados** — secciones VELOCIDADES, DIMENSIONES, VERTEDERO, LIMPIEZA N-1.
-- **Limpieza (N-1)** — si hay más de 1 nave, se calcula la condición de limpieza.
-- **Interfaz responsiva** — dos columnas en escritorio, apilada en móviles.
+- **Recálculo en vivo** — los resultados se actualizan automáticamente al modificar cualquier dato (debounce 80 ms; Enter fuerza recálculo inmediato).
+- **Resultados como tarjetas escaneables** — long. de sedimentación destacada, v. real, margen, comparación visual de velocidades y dimensiones agrupadas.
+- **Memoria de cálculo colapsable** — reporte formal al pie, con botón "Copiar" para pegar al informe.
+- **Limpieza (N-1) informativa** — si hay más de 1 nave, se muestran los valores del estado de mantenimiento sin alterar el diseño.
+- **Interfaz responsiva** — grilla 2-col en escritorio, apilada en móviles.
 
 ---
 
@@ -78,9 +79,9 @@ El programa ofrece dos opciones independientes:
 1. **Selecciona la velocidad límite** — Camp (estándar) o Shields (alternativo).
 2. **Selecciona la fuente de w** — Manual (ingresas w de tablas) o Zanke (se calcula automáticamente).
 3. **Ingresa los datos** — Caudal, diámetro de partícula, dimensiones de la nave, coeficiente C del vertedero y número de naves.
-4. **Presiona "Calcular"** — Los resultados aparecen en la columna derecha.
+4. **Observa los resultados** — se actualizan automáticamente al modificar cualquier campo.
 
-Para empezar de nuevo, presiona **"Limpiar"**.
+Para empezar de nuevo, presiona **"Limpiar"**. Para abrir la memoria de cálculo colapsable, haz clic en el panel al pie de la página.
 
 ---
 
