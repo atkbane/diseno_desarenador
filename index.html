@@ -184,6 +184,44 @@
             font-weight: 400;
         }
         .res-card.destacado .res-unit { color: rgba(255,255,255,0.85); }
+        .res-card.warn {
+            background: #fff5e6;
+            border-color: #e67e22;
+        }
+        .res-card.warn .res-label { color: #b8651a; }
+        .res-card.warn .res-value { color: #b8651a; }
+        .res-card.danger {
+            background: #fde2e2;
+            border-color: #e74c3c;
+        }
+        .res-card.danger .res-label { color: #a93226; }
+        .res-card.danger .res-value { color: #a93226; }
+        .res-status {
+            font-size: 0.68rem;
+            margin-top: 4px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            min-height: 1em;
+            color: #27ae60;
+        }
+        .res-status.warn { color: #b8651a; }
+        .res-status.danger { color: #a93226; }
+        .vel-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        .vel-empty {
+            color: #aaa;
+            font-style: italic;
+            font-size: 0.82rem;
+            text-align: center;
+            padding: 12px;
+            background: #f8f9fc;
+            border-radius: 8px;
+            border: 1px dashed #d4d8e0;
+        }
 
         .group-title {
             font-size: 0.78rem;
@@ -220,48 +258,6 @@
             color: #888;
             font-weight: 400;
             margin-left: 2px;
-        }
-
-        .bar-chart {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-        .bar-row {
-            display: grid;
-            grid-template-columns: 100px 1fr 70px;
-            gap: 8px;
-            align-items: center;
-        }
-        .bar-label { color: #555; font-weight: 500; font-size: 0.78rem; }
-        .bar-track {
-            background: #e4e7ef;
-            height: 10px;
-            border-radius: 5px;
-            overflow: hidden;
-        }
-        .bar-fill {
-            background: linear-gradient(90deg, #4a6cf7, #3b5de7);
-            height: 100%;
-            width: 0%;
-            transition: width 0.3s ease;
-            border-radius: 5px;
-        }
-        .bar-fill.limit { background: linear-gradient(90deg, #27ae60, #219955); }
-        .bar-fill.real { background: linear-gradient(90deg, #e67e22, #d35400); }
-        .bar-value {
-            text-align: right;
-            font-weight: 600;
-            color: #1a1a2e;
-            font-variant-numeric: tabular-nums;
-            font-size: 0.8rem;
-        }
-        .bar-empty {
-            color: #aaa;
-            font-style: italic;
-            font-size: 0.82rem;
-            text-align: center;
-            padding: 12px;
         }
 
         .summary-panel {
@@ -390,15 +386,6 @@
                 <div class="section-divider"></div>
 
                 <div class="form-row">
-                    <label>Velocidad límite</label>
-                    <div class="radio-group">
-                        <label><input type="radio" name="vel_limite" value="camp" checked> Camp (estándar)</label>
-                        <label><input type="radio" name="vel_limite" value="shields"> Shields</label>
-                    </div>
-                    <span class="caption">→ método de cálculo de v. máxima admisible</span>
-                </div>
-
-                <div class="form-row">
                     <label>Fuente de w (vel. de caída)</label>
                     <div class="radio-group">
                         <label><input type="radio" name="fuente_w" value="manual" checked> Manual</label>
@@ -472,9 +459,9 @@
                     </div>
                 </div>
 
-                <div class="group-title">Comparación de velocidades</div>
-                <div class="bar-chart" id="barChart">
-                    <div class="bar-empty">Ingresa los datos para ver la comparación.</div>
+                <div class="group-title">Verificación de velocidades límite</div>
+                <div class="vel-grid" id="velGrid">
+                    <div class="vel-empty">Ingresa los datos para ver la verificación.</div>
                 </div>
 
                 <div class="group-title">Dimensiones</div>
@@ -582,7 +569,6 @@
         const inpVPar = $('inp-v-par');
         const groupVPar = $('group-v-par');
         const captionW = $('captionW');
-        const velRadios = document.querySelectorAll('input[name="vel_limite"]');
         const fwRadios = document.querySelectorAll('input[name="fuente_w"]');
         const btnLimpiar = $('btnLimpiar');
         const resultText = $('resultText');
@@ -631,7 +617,6 @@
             updateFuenteW();
             scheduleRecalc();
         }));
-        velRadios.forEach(r => r.addEventListener('change', scheduleRecalc));
         updateFuenteW();
 
         async function cargarPyodide() {
@@ -695,7 +680,7 @@ exec(open('/web_bridge.py').read())
             const params = {
                 titulo: t,
                 q, d_par: d, bas: b, alt: h, n_nav: nNav, c_ver: c,
-                vel_limite: document.querySelector('input[name="vel_limite"]:checked').value,
+                vel_limite: 'camp',
                 fuente_w: isManual ? 'manual' : 'zanke',
             };
             if (isManual) params.v_par = vp;
@@ -745,9 +730,8 @@ json.dumps(result)
             const t = titulo.value.trim() || '—';
             $('resTitulo').textContent = t;
 
-            const velLabel = d.vel_limite === 'camp' ? 'Camp' : 'Shields';
             const wLabel = d.fuente_w === 'manual' ? 'Manual' : 'Zanke';
-            $('resMetodo').textContent = `v.límite: ${velLabel} · w: ${wLabel}`;
+            $('resMetodo').textContent = `w: ${wLabel}`;
 
             $('resLonSed').innerHTML = `${fmt(d.lon_sed, 2)}<span class="res-unit">m</span>`;
             $('resVReal').innerHTML = `${fmt(d.v_real, 3)}<span class="res-unit">m/s</span>`;
@@ -773,37 +757,48 @@ json.dumps(result)
                 $('resHTotalLimpia').innerHTML = `${fmt(d.h_total_limpia, 2)}<span class="unit">m</span>`;
             }
 
-            renderBarChart(d);
-
+            renderVelGrid(d);
             resultText.textContent = r.texto;
             resultText.style.display = 'block';
             summaryPlaceholder.style.display = 'none';
 
-            setStatus(`Actualizado · ${velLabel} + ${wLabel}`, 'ready');
+            setStatus(`Actualizado · w: ${wLabel}`, 'ready');
         }
 
-        function renderBarChart(d) {
-            const chart = $('barChart');
-            const items = [{ label: 'V. real', val: d.v_real, cls: 'real' }];
-            if (d.v_camp > 0) items.push({ label: 'Límite Camp', val: d.v_camp, cls: 'limit' });
-            if (d.v_shields > 0) items.push({ label: 'Límite Shields', val: d.v_shields, cls: 'limit' });
-            if (items.length === 1 && d.v_real === 0) {
-                chart.innerHTML = '<div class="bar-empty">Sin datos.</div>';
+        function limitState(vReal, vLim) {
+            if (!vLim || vLim <= 0) return null;
+            if (vReal >= vLim) return { cls: 'danger', label: 'Excedido' };
+            if (vReal >= 0.9 * vLim) return { cls: 'warn', label: 'Cerca' };
+            return null;
+        }
+
+        function renderVelGrid(d) {
+            const vReal = d.v_real;
+            const grid = $('velGrid');
+            let html = '';
+            if (d.v_camp > 0) {
+                const st = limitState(vReal, d.v_camp);
+                html += `
+                    <div class="res-card${st ? ' ' + st.cls : ''}">
+                        <div class="res-label">Límite Camp</div>
+                        <div class="res-value">${fmt(d.v_camp, 3)}<span class="res-unit">m/s</span></div>
+                        <div class="res-status${st ? ' ' + st.cls : ''}">${st ? st.label : 'OK'}</div>
+                    </div>`;
+            }
+            if (d.v_shields > 0) {
+                const st = limitState(vReal, d.v_shields);
+                html += `
+                    <div class="res-card${st ? ' ' + st.cls : ''}">
+                        <div class="res-label">Límite Shields</div>
+                        <div class="res-value">${fmt(d.v_shields, 3)}<span class="res-unit">m/s</span></div>
+                        <div class="res-status${st ? ' ' + st.cls : ''}">${st ? st.label : 'OK'}</div>
+                    </div>`;
+            }
+            if (!html) {
+                grid.innerHTML = '<div class="vel-empty">Sin datos.</div>';
                 return;
             }
-            const max = Math.max(...items.map(it => it.val), 1e-9);
-            chart.innerHTML = items.map(it => {
-                const pct = Math.max(2, (it.val / max) * 100);
-                return `
-                    <div class="bar-row">
-                        <span class="bar-label">${it.label}</span>
-                        <div class="bar-track">
-                            <div class="bar-fill ${it.cls}" style="width: ${pct}%;"></div>
-                        </div>
-                        <span class="bar-value">${it.val.toFixed(3)} m/s</span>
-                    </div>
-                `;
-            }).join('');
+            grid.innerHTML = html;
         }
 
         function limpiarResultados() {
@@ -826,7 +821,7 @@ json.dumps(result)
             $('resHTotalLimpia').innerHTML = '—<span class="unit">m</span>';
             $('titleLimpia').style.display = 'none';
             $('gridLimpia').style.display = 'none';
-            $('barChart').innerHTML = '<div class="bar-empty">Ingresa los datos para ver la comparación.</div>';
+            $('velGrid').innerHTML = '<div class="vel-empty">Ingresa los datos para ver la verificación.</div>';
             resultText.style.display = 'none';
             summaryPlaceholder.style.display = 'block';
             summaryPlaceholder.textContent = 'La memoria de cálculo se actualiza al modificar los datos.';
@@ -860,7 +855,6 @@ json.dumps(result)
             inpH.value = '';
             inpC.value = '2.00';
             inpVPar.value = '';
-            document.querySelector('input[name="vel_limite"][value="camp"]').checked = true;
             document.querySelector('input[name="fuente_w"][value="manual"]').checked = true;
             updateFuenteW();
             limpiarResultados();

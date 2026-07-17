@@ -18,15 +18,17 @@ Abre la aplicación directamente desde el navegador, sin instalación:
 
 ### Opciones de cálculo
 
-El programa ofrece dos opciones independientes:
+**Velocidad límite del flujo:**
+El programa calcula simultáneamente dos criterios y los presenta como verificación visual:
 
-**1. Velocidad límite del flujo:**
 | Opción | Fórmula | Fuente |
 |--------|---------|--------|
-| **Camp** (estándar) | `v = a·√d` (a = 36, 44 ó 51 según d) | ANA p. 80, Villon p. 105 |
-| **Shields** (alternativo) | `v_crítica = ks·R^(1/6)·√((ρs/ρw−1)·d·0.03)` | Shields (1936) |
+| **Camp** | `v = a·√d` (a = 36, 44 ó 51 según d) | ANA p. 80, Villon p. 105 |
+| **Shields** | `v_crítica = ks·R^(1/6)·√((ρs/ρw−1)·d·0.03)` | Shields (1936) |
 
-**2. Velocidad de caída de la partícula (w):**
+Cada límite se muestra en una tarjeta con indicador de estado (OK / Cerca / Excedido) según la velocidad real calculada.
+
+**Velocidad de caída de la partícula (w):**
 | Opción | Método | Fuente |
 |--------|--------|--------|
 | **Manual** | Usuario ingresa w de tablas/nomogramas | Arkhangelski, Sudry, Bouvard |
@@ -63,8 +65,8 @@ El programa ofrece dos opciones independientes:
 
 ## ✨ Características
 
-- **Dos opciones independientes** — Velocidad límite (Camp/Shields) y Fuente de w (Manual/Zanke).
-- **4 combinaciones posibles** — Camp+Manual, Camp+Zanke, Shields+Manual, Shields+Zanke.
+- **Fuente de w configurable** — Manual (tablas Arkhangelski/Sudry) o automático (Zanke 1977).
+- **Verificación dual** — tarjetas con Límite Camp y Límite Shields, coloreadas según estado (OK / Cerca / Excedido) respecto a la velocidad real.
 - **Velocidad de caída condicional** — campo visible solo cuando se selecciona "Manual".
 - **Recálculo en vivo** — los resultados se actualizan automáticamente al modificar cualquier dato (debounce 80 ms; Enter fuerza recálculo inmediato).
 - **Resultados como tarjetas escaneables** — long. de sedimentación destacada, v. real, margen, comparación visual de velocidades y dimensiones agrupadas.
@@ -76,10 +78,9 @@ El programa ofrece dos opciones independientes:
 
 ## 🧪 Cómo usar
 
-1. **Selecciona la velocidad límite** — Camp (estándar) o Shields (alternativo).
-2. **Selecciona la fuente de w** — Manual (ingresas w de tablas) o Zanke (se calcula automáticamente).
-3. **Ingresa los datos** — Caudal, diámetro de partícula, dimensiones de la nave, coeficiente C del vertedero y número de naves.
-4. **Observa los resultados** — se actualizan automáticamente al modificar cualquier campo.
+1. **Selecciona la fuente de w** — Manual (ingresas w de tablas) o Zanke (se calcula automáticamente).
+2. **Ingresa los datos** — Caudal, diámetro de partícula, dimensiones de la nave, coeficiente C del vertedero y número de naves.
+3. **Observa los resultados** — se actualizan automáticamente al modificar cualquier campo.
 
 Para empezar de nuevo, presiona **"Limpiar"**. Para abrir la memoria de cálculo colapsable, haz clic en el panel al pie de la página.
 
